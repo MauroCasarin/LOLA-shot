@@ -67,6 +67,10 @@ function moverObjetivo(objetivo) {
                 velocidadObjetivos += 1;
             }
         }
+        if (verificarColisionHelicoptero(objetivo)) {
+            clearInterval(intervalo);
+            gameOver();
+        }
     }, 20);
 }
 
@@ -95,13 +99,22 @@ function moverNube(nube) {
     }, 50);
 }
 
-function verificarColision(elemento) {
+function verificarColision(objetivo) {
     const helicopteroRect = helicoptero.getBoundingClientRect();
-    const elementoRect = elemento.getBoundingClientRect();
-    return !(helicopteroRect.right < elementoRect.left ||
-        helicopteroRect.left > elementoRect.right ||
-        helicopteroRect.bottom < elementoRect.top ||
-        helicopteroRect.top > elementoRect.bottom);
+    const objetivoRect = objetivo.getBoundingClientRect();
+    return !(helicopteroRect.right < objetivoRect.left ||
+        helicopteroRect.left > objetivoRect.right ||
+        helicopteroRect.bottom < objetivoRect.top ||
+        helicopteroRect.top > objetivoRect.bottom);
+}
+
+function verificarColisionHelicoptero(objetivo) {
+    const helicopteroRect = helicoptero.getBoundingClientRect();
+    const objetivoRect = objetivo.getBoundingClientRect();
+    return !(helicopteroRect.right < objetivoRect.left ||
+        helicopteroRect.left > objetivoRect.right ||
+        helicopteroRect.bottom < objetivoRect.top ||
+        helicopteroRect.top > objetivoRect.bottom);
 }
 
 function gameOver() {
@@ -157,7 +170,44 @@ function verificarColisionLaser(laser) {
         }
     });
 }
+function moverObjetivo(objetivo) {
+    if (!juegoActivo) return;
+    let objetivoX = window.innerWidth;
+    const intervalo = setInterval(() => {
+        objetivoX -= velocidadObjetivos;
+        objetivo.style.left = objetivoX + 'px';
+        if (objetivoX < -50) {
+            clearInterval(intervalo);
+            objetivo.remove();
+        }
+        // Llamar a verificarColisionHelicoptero aquí
+        if (verificarColisionHelicoptero(objetivo)) {
+            clearInterval(intervalo);
+            gameOver();
+        }
+    }, 20);
+}
 
+function verificarColisionHelicoptero(objetivo) {
+    const helicopteroRect = helicoptero.getBoundingClientRect();
+    const objetivoRect = objetivo.getBoundingClientRect();
+    const colision = !(helicopteroRect.right < objetivoRect.left ||
+        helicopteroRect.left > objetivoRect.right ||
+        helicopteroRect.bottom < objetivoRect.top ||
+        helicopteroRect.top > objetivoRect.bottom);
+    if (colision) {
+        return true;
+    }
+    return false;
+}
+
+function gameOver() {
+    juegoActivo = false;
+    sonidos.gameOver.play();
+    juego.style.display = 'none';
+    finJuego.style.display = 'block';
+    puntuacionFinal.textContent = 'Puntuación final: ' + puntuacion;
+}
 jugarBtn.addEventListener('click', () => {
     inicio.style.display = 'none';
     juego.style.display = 'block';
@@ -186,6 +236,74 @@ reiniciarBtn.addEventListener('click', () => {
     helicoptero.style.top = helicopteroY + 'px';
     setInterval(crearObjetivo, 2000);
     setInterval(crearNube, 3000);
-}); // Cierre de la función reiniciarBtn
+});
 
-arribaBtn.addEventListener
+arribaBtn.addEventListener('click', () => {
+    if (!juegoActivo) return;
+    helicopteroY -= 20;
+    if (helicopteroY < 0) helicopteroY = 0;
+    helicoptero.style.top = helicopteroY + 'px';
+});
+
+abajoBtn.addEventListener('click', () => {
+    if (!juegoActivo) return;
+    helicopteroY += 20;
+    if (helicopteroY > window.innerHeight - 50) helicopteroY = window.innerHeight - 50;
+    helicoptero.style.top = helicopteroY + 'px';
+});
+
+dispararBtn.addEventListener('click', () => {
+    if (!juegoActivo) return;
+    sonidos.disparo.play();
+    helicoptero.style.transform = 'translateY(-50%) rotate(-15deg)';
+    setTimeout(() => {
+        helicoptero.style.transform = 'translateY(-50%) rotate(0deg)';
+    }, 200);
+    crearLaser();
+});
+
+document.addEventListener('keydown', (event) => {
+    if (!juegoActivo) return;
+    switch (event.key) {
+        case 'ArrowUp':
+            helicopteroY -= 20;
+            if (helicopteroY < 0) helicopteroY = 0;
+            helicoptero.style.top = helicopteroY + 'px';
+            break;
+        case 'ArrowDown':
+            helicopteroY += 20;
+            if (helicopteroY > window.innerHeight - 50) helicopteroY = window.innerHeight - 50;
+            helicoptero.style.top = helicopteroY + 'px';
+            break;
+        case ' ': // Barra espaciadora
+            sonidos.disparo.play();
+            helicoptero.style.transform = 'translateY(-50%) rotate(-15deg)';
+            setTimeout(() => {
+                helicoptero.style.transform = 'translateY(-50%) rotate(0deg)';
+            }, 200);
+            crearLaser();
+            break;
+    }
+});
+
+juego.addEventListener('touchstart', (event) => {
+    if (!juegoActivo) return;
+    event.preventDefault(); // Evita el desplazamiento de la pantalla
+    const touch = event.touches[0];
+    const helicopteroRect = helicoptero.getBoundingClientRect();
+    const touchY = touch.clientY;
+
+    // Calcula la diferencia entre la posición táctil y el centro del helicóptero
+    const diffY = touchY - (helicopteroRect.top + helicopteroRect.height / 2);
+
+    // Mueve el helicóptero en la dirección del toque
+    helicopteroY += diffY * 0.1; // Ajusta la velocidad de movimiento
+
+    // Limita la posición del helicóptero dentro de los límites de la pantalla
+    if (helicopteroY < 0) helicopteroY = 0;
+    if (helicopteroY > window.innerHeight - 50) helicopteroY = window.innerHeight - 50;
+    helicoptero.style.top = helicopteroY + 'px';
+});
+
+setInterval(crearObjetivo, 2000);
+setInterval(crearNube, 3000);
