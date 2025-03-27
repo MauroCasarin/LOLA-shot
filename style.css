@@ -1,7 +1,7 @@
 body {
     margin: 0;
     overflow: hidden;
-    background: linear-gradient(to bottom, white, skyblue);
+    background: linear-gradient(to top, white, skyblue);
 }
 
 #inicio {
@@ -73,5 +73,5 @@ body {
     position: absolute;
     width: 10px;
     height: 4px;
-    background-color: red;
+    background-color: green;
 }
