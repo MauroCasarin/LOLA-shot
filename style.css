@@ -29,15 +29,15 @@ body {
 
 #botones {
     position: absolute;
-    bottom: 5%;
+    bottom: 15%;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
 }
 
     #botones button {
-        padding: 2vw 4vw;
-        margin: 0 1vw;
+        padding: 2vw 10vw;
+        margin: 0 2vw;
         font-size: 3vw;
     }
 
