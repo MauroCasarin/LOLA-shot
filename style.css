@@ -36,9 +36,11 @@ body {
 }
 
     #botones button {
-        padding: 2vw 10vw;
+        padding: 2vw 8vw; /* Ajuste del padding horizontal */
         margin: 0 2vw;
         font-size: 3vw;
+        touch-action: manipulation; /* Evita el desplazamiento */
+        user-select: none; /* Evita la selección de texto */
     }
 
 .target {
