@@ -246,13 +246,6 @@ function moverHelicopteroArriba() {
     helicoptero.style.top = helicopteroY + 'px';
 }
 
-function moverHelicopteroAbajo() {
-    if (!juegoActivo) return;
-    helicopteroY += 20;
-    if (helicopteroY > window.innerHeight - 50) helicopteroY = window.innerHeight - 50;
-    helicoptero.style.top = helicopteroY + 'px';
-}
-
 function dispararHelicoptero() {
     if (!juegoActivo) return;
     sonidos.disparo.play();
@@ -263,19 +256,20 @@ function dispararHelicoptero() {
     crearLaser();
 }
 
+function moverHelicopteroAbajo() {
+    if (!juegoActivo) return;
+    helicopteroY += 20;
+    if (helicopteroY > window.innerHeight - 50) helicopteroY = window.innerHeight - 50;
+    helicoptero.style.top = helicopteroY + 'px';
+}
+
+
 arribaBtn.addEventListener('touchstart', (event) => {
     event.preventDefault();
     moverHelicopteroArriba();
 });
 
 arribaBtn.addEventListener('click', moverHelicopteroArriba);
-
-abajoBtn.addEventListener('touchstart', (event) => {
-    event.preventDefault();
-    moverHelicopteroAbajo();
-});
-
-abajoBtn.addEventListener('click', moverHelicopteroAbajo);
 
 dispararBtn.addEventListener('touchstart', (event) => {
     event.preventDefault();
@@ -284,17 +278,21 @@ dispararBtn.addEventListener('touchstart', (event) => {
 
 dispararBtn.addEventListener('click', dispararHelicoptero);
 
+
+abajoBtn.addEventListener('touchstart', (event) => {
+    event.preventDefault();
+    moverHelicopteroAbajo();
+});
+
+abajoBtn.addEventListener('click', moverHelicopteroAbajo);
+
+
 document.addEventListener('keydown', (event) => {
     if (!juegoActivo) return;
     switch (event.key) {
         case 'ArrowUp':
             helicopteroY -= 20;
             if (helicopteroY < 0) helicopteroY = 0;
-            helicoptero.style.top = helicopteroY + 'px';
-            break;
-        case 'ArrowDown':
-            helicopteroY += 20;
-            if (helicopteroY > window.innerHeight - 50) helicopteroY = window.innerHeight - 50;
             helicoptero.style.top = helicopteroY + 'px';
             break;
         case ' ': // Barra espaciadora
@@ -305,27 +303,16 @@ document.addEventListener('keydown', (event) => {
             }, 200);
             crearLaser();
             break;
+        case 'ArrowDown':
+            helicopteroY += 20;
+            if (helicopteroY > window.innerHeight - 50) helicopteroY = window.innerHeight - 50;
+            helicoptero.style.top = helicopteroY + 'px';
+            break;
+
     }
 });
 
-juego.addEventListener('touchstart', (event) => {
-    if (!juegoActivo) return;
-    event.preventDefault(); // Evita el desplazamiento de la pantalla
-    const touch = event.touches[0];
-    const helicopteroRect = helicoptero.getBoundingClientRect();
-    const touchY = touch.clientY;
 
-    // Calcula la diferencia entre la posición táctil y el centro del helicóptero
-    const diffY = touchY - (helicopteroRect.top + helicopteroRect.height / 2);
-
-    // Mueve el helicóptero en la dirección del toque
-    helicopteroY += diffY * 0.1; // Ajusta la velocidad de movimiento
-
-    // Limita la posición del helicóptero dentro de los límites de la pantalla
-    if (helicopteroY < 0) helicopteroY = 0;
-    if (helicopteroY > window.innerHeight - 50) helicopteroY = window.innerHeight - 50;
-    helicoptero.style.top = helicopteroY + 'px';
-});
 
 setInterval(crearObjetivo, 2000);
 setInterval(crearNube, 3000);
