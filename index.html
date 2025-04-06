@@ -1,28 +1,27 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
-    <meta charset="UTF-8">
+    <title>LOLA shot</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOLA-shot</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 <body>
     <div id="inicio">
-        <h1>LOLA-shot</h1>
+        <h1>LOLA shot</h1>
         <button id="jugar">Jugar</button>
     </div>
-    <div id="juego">
-        <img id="helicoptero" src="https://raw.githubusercontent.com/MauroCasarin/Lola-Game/refs/heads/main/lola.gif" alt="Helicóptero">
+    <div id="juego" style="display: none;">
         <div id="puntuacion">Puntuación: 0</div>
+        <img id="helicoptero" src="https://raw.githubusercontent.com/MauroCasarin/Lola-Game/refs/heads/main/lola.gif" alt="Helicóptero">
         <div id="botones">
             <button id="arriba">Arriba</button>
-            <button id="disparar">Disparar</button>
             <button id="abajo">Abajo</button>
+            <button id="disparar">Disparar</button>
         </div>
     </div>
-    <div id="fin-juego">
-        <h1>¡Game Over!</h1>
-        <p id="puntuacion-final">Puntuación final: 0</p>
+    <div id="fin-juego" style="display: none;">
+        <h1>¡Fin del juego!</h1>
+        <p id="puntuacion-final"></p>
         <button id="reiniciar">Reiniciar</button>
     </div>
     <script src="script.js"></script>

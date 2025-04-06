@@ -1,29 +1,21 @@
 body {
     margin: 0;
     overflow: hidden;
-    background-color: lightblue;
+    background: linear-gradient(to top, white, skyblue);
 }
 
-#inicio, #juego, #fin-juego {
+#inicio {
     position: absolute;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    background-color: rgba(0, 0, 0, 0.5);
-    color: white;
-    font-family: sans-serif;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
 }
 
 #juego {
-    display: none;
-    background-color: lightblue;
-}
-
-#fin-juego {
-    display: none;
+    position: relative;
+    width: 100vw;
+    height: 100vh;
 }
 
 #helicoptero {
@@ -31,44 +23,55 @@ body {
     width: 50px;
     height: 50px;
     top: 50%;
+    left: 10%;
     transform: translateY(-50%);
 }
 
+#botones {
+    position: absolute;
+    bottom: 15%;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+}
+
+    #botones button {
+        padding: 2vw 10vw;
+        margin: 0 2vw;
+        font-size: 3vw;
+    }
+
 .target {
     position: absolute;
-    width: 30px;
-    height: 30px;
+    width: 50px;
+    height: 50px;
 }
 
 .cloud {
     position: absolute;
-    width: 100px;
+    width: 50px;
     height: 50px;
+}
+
+#puntuacion {
+    position: absolute;
+    top: 2%;
+    left: 2%;
+    font-size: 4vw;
+    color: black;
+}
+
+#fin-juego {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
 }
 
 .laser {
     position: absolute;
     width: 10px;
-    height: 2px;
-    background-color: red;
+    height: 4px;
+    background-color: green;
 }
-
-#puntuacion {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    color: white;
-    font-size: 20px;
-}
-
-#botones {
-    position: absolute;
-    bottom: 20px;
-    display: flex;
-}
-
-    #botones button {
-        margin: 10px;
-        padding: 10px 20px;
-        font-size: 16px;
-    }
