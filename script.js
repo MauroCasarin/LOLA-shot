@@ -21,7 +21,9 @@ let lasers = [];
 const objetivosSrc = [
     "https://raw.githubusercontent.com/MauroCasarin/Lola-Game/e17ef4a544f71b08c4cf0418af133e7834ac7157/brahma.png",
     "https://raw.githubusercontent.com/MauroCasarin/Lola-Game/refs/heads/main/quilmes.png",
+    "https://raw.githubusercontent.com/MauroCasarin/Lola-Game/refs/heads/main/Bud.jpg",
     "https://raw.githubusercontent.com/MauroCasarin/Lola-Game/refs/heads/main/stela.png"
+    
 ];
 
 const nubesSrc = [
