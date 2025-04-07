@@ -41,7 +41,14 @@ function crearObjetivo() {
     const objetivo = document.createElement('img');
     objetivo.src = objetivosSrc[Math.floor(Math.random() * objetivosSrc.length)];
     objetivo.classList.add('target');
-    objetivo.style.top = Math.random() * (window.innerHeight - 50) + 'px';
+
+    // Obtener la altura del contenedor del juego
+    const juegoRect = juego.getBoundingClientRect();
+    const altoJuego = juegoRect.height;
+    const altoObjetivo = 50; // Asumiendo que la altura del objetivo es 50px
+
+    // Generar posición vertical aleatoria dentro de la altura del juego
+    objetivo.style.top = Math.random() * (altoJuego - altoObjetivo) + 'px';
     objetivo.style.left = window.innerWidth + 'px';
     juego.appendChild(objetivo);
     moverObjetivo(objetivo);
@@ -81,7 +88,14 @@ function crearNube() {
         const nube = document.createElement('img');
         nube.src = nubesSrc[Math.floor(Math.random() * nubesSrc.length)];
         nube.classList.add('cloud');
-        nube.style.top = Math.random() * (window.innerHeight - 50) + 'px';
+
+        // Obtener la altura del contenedor del juego
+        const juegoRect = juego.getBoundingClientRect();
+        const altoJuego = juegoRect.height;
+        const altoNube = 50; // Asumiendo que la altura de la nube es 50px
+
+        // Generar posición vertical aleatoria dentro de la altura del juego
+        nube.style.top = Math.random() * (altoJuego - altoNube) + 'px';
         nube.style.left = window.innerWidth + 'px';
         juego.appendChild(nube);
         moverNube(nube);
