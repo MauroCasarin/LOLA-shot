@@ -29,7 +29,7 @@ body {
 
 #botones {
     position: absolute;
-    bottom: 15%;
+    bottom: 10%;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
@@ -37,9 +37,9 @@ body {
 }
 
     #botones button {
-        padding: 2vw 10vw;
-        margin: 0 2vw;
-        font-size: 3vw;
+        padding: 0vw 0vw;
+        margin: 0 10vw;
+        font-size: 0vw;
     }
 
 .target {
