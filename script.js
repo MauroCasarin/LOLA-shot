@@ -27,8 +27,8 @@ const objetivosSrc = [
 ];
 
 const nubesSrc = [
-    "https://raw.githubusercontent.com/MauroCasarin/Lola-Game/refs/heads/main/cloud.png",
-    "https://raw.githubusercontent.com/MauroCasarin/Lola-Game/refs/heads/main/cloud2.png"
+    "https://raw.githubusercontent.com/MauroCasarin/Lola-Game/9af808195ce2abfb240dc4f890d329acf0f09e55/cloud.svg",
+    "https://raw.githubusercontent.com/MauroCasarin/Lola-Game/9af808195ce2abfb240dc4f890d329acf0f09e55/cloud2.svg"
 ];
 
 const sonidos = {
