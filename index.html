@@ -169,6 +169,15 @@
              z-index: 5; /* Asegura que el lúpulo esté por encima del fondo y nubes */
         }
 
+         .bomba {
+             position: absolute;
+             width: 15px; /* Ancho de la bomba */
+             height: 15px; /* Altura de la bomba */
+             background-color: black; /* Color de la bomba */
+             border-radius: 50%; /* Forma redonda */
+             z-index: 6; /* Asegura que la bomba esté por encima de los objetivos */
+         }
+
 
         #puntuacion {
             position: absolute;
@@ -295,10 +304,12 @@
 
         let puntuacion = 0;
         let helicopteroY = 0;
-        let velocidadObjetivos = 2;
+        let velocidadObjetivos = 2; // Velocidad inicial de los objetivos
+        const velocidadObjetivosInicial = 2; // Guardamos la velocidad inicial
         let objetivosEliminados = 0;
         let juegoActivo = false;
         let lasers = [];
+        let bombas = []; // Array para almacenar las bombas
 
         // Variables para el movimiento continuo
         let moveUpInterval = null;
@@ -310,10 +321,14 @@
         let lupuloInterval; // Intervalo para crear lúpulos
 
         // Variables para el bonus de lúpulo
-        let shotPower = 0; // Nivel del bonus de disparo
+        let shotPower = 0; // Nivel del bonus de disparo (0: 1 disparo, 1: 2 disparos, >=2: 3 disparos, >=3: + bomba)
         const laserBaseWidth = 10; // Ancho base del láser
         const laserWidthIncrement = 5; // Incremento de ancho por cada lúpulo
         const laserSpeed = 10; // Velocidad base del láser
+        const objetivoSpeedIncrementPorDiezPuntos = 0.5; // Incremento de velocidad de los objetivos cada 10 puntos
+        const objetivoSpeedIncrementPorBonus = 1.0; // Incremento de velocidad de los objetivos por cada lúpulo
+        let lastScoreIncrease = 0; // Para rastrear el último múltiplo de 10 que incrementó la velocidad
+        let lastLupuloScore = 0; // Para rastrear la puntuación en la que apareció el último lúpulo
 
 
         const objetivosSrc = [
@@ -337,7 +352,8 @@
             explosion: new Audio("http://www.marcelomagni.com.ar/sound/explo.mp3"),
             caida: new Audio("http://www.marcelomagni.com.ar/sound/caenobj.mp3"),
             gameOver: new Audio("http://www.marcelomagni.com.ar/sound/game-over.mp3"),
-             bonus: new Audio("http://www.marcelomagni.com.ar/sound/bonus.mp3") // Sonido para el bonus
+             bonus: new Audio("http://www.marcelomagni.com.ar/sound/bonus.mp3"), // Sonido para el bonus
+             bomba: new Audio("http://www.marcelomagni.com.ar/sound/bomba.mp3") // Sonido para la bomba
         };
 
         // --- Funciones de movimiento del helicóptero ---
@@ -353,30 +369,6 @@
             helicoptero.style.top = helicopteroY + 'px';
         }
 
-        function dispararHelicoptero() {
-            if (!juegoActivo) return;
-            sonidos.disparo.play();
-            // Animación de retroceso del helicóptero
-            helicoptero.style.transition = 'transform 0.1s ease-in-out';
-            helicoptero.style.transform = 'translateY(-50%) translateX(-10px)'; // Retrocede un poco
-            setTimeout(() => {
-                 helicoptero.style.transform = 'translateY(-50%) translateX(0)'; // Vuelve a la posición normal
-                 helicoptero.style.transition = ''; // Elimina la transición para el movimiento normal
-            }, 100); // Duración del retroceso
-
-            // Crear láser(es) basado en shotPower
-            const currentLaserWidth = laserBaseWidth + shotPower * laserWidthIncrement;
-            if (shotPower > 0) {
-                // Disparo triple
-                crearLaser(currentLaserWidth, 0); // Recto
-                crearLaser(currentLaserWidth, -15); // Diagonal arriba (ajusta el ángulo si es necesario)
-                crearLaser(currentLaserWidth, 15); // Diagonal abajo (ajusta el ángulo si es necesario)
-            } else {
-                // Disparo simple
-                crearLaser(laserBaseWidth, 0); // Recto
-            }
-        }
-
         function moverHelicopteroAbajo() {
             if (!juegoActivo) return;
             const gameAreaRect = gameArea.getBoundingClientRect();
@@ -390,6 +382,8 @@
         }
          // --- Fin de funciones de movimiento del helicóptero ---
 
+
+        // --- Funciones de creación y movimiento de elementos del juego ---
 
         // Función para crear un objetivo
         function crearObjetivo() {
@@ -506,7 +500,10 @@
 
         // Función para crear un lúpulo
         function crearLupulo() {
-            if (!juegoActivo || puntuacion < 10) return; // Solo crear si el juego está activo y la puntuación es >= 10
+            // Solo crear si el juego está activo, la puntuación es un múltiplo de 15, y no se ha creado un lúpulo en esta puntuación
+            if (!juegoActivo || puntuacion < 15 || puntuacion % 15 !== 0 || puntuacion === lastLupuloScore) {
+                 return;
+            }
             // Limitar el número de lúpulos en pantalla (ej: máximo 1)
             if (gameArea.querySelectorAll('.lupulo').length < 1) {
                 console.log('Creando lúpulo...'); // Log de depuración
@@ -530,6 +527,7 @@
 
                 // Mover el lúpulo
                 moverLupulo(lupulo);
+                lastLupuloScore = puntuacion; // Registrar la puntuación en la que se creó el lúpulo
             }
         }
 
@@ -558,62 +556,17 @@
                 } else {
                     // *** VERIFICAR COLISIÓN CON EL HELICÓPTERO AQUÍ ***
                     if (verificarColisionHelicoptero(lupulo)) {
-                        console.log('Colisión con lúpulo detectada. Aumentando shotPower.'); // Log de depuración
+                        console.log('Colisión con lúpulo detectada. Aumentando shotPower y velocidad de objetivos.'); // Log de depuración
                         clearInterval(intervalo); // Detener el movimiento del lúpulo
                         lupulo.remove(); // Remover el lúpulo al colisionar
                         sonidos.bonus.play(); // Reproducir sonido de bonus
                         shotPower++; // Aumentar el nivel del bonus de disparo
+                        velocidadObjetivos += objetivoSpeedIncrementPorBonus; // Aumentar la velocidad de los objetivos por bonus
+                        console.log(`Nuevo shotPower: ${shotPower}, Nueva velocidadObjetivos: ${velocidadObjetivos}`); // Log de depuración
                         // No activar Game Over, el juego continúa
                     }
                 }
             }, 20); // Intervalo de tiempo para el movimiento
-        }
-
-
-        // Función para verificar colisión (general, usada para láser vs objetivo y helicóptero vs lúpulo/objetivo)
-        function verificarColision(elemento1, elemento2) {
-            const rect1 = elemento1.getBoundingClientRect();
-            const rect2 = elemento2.getBoundingClientRect();
-            return !(rect1.right < rect2.left ||
-                rect1.left > rect2.right ||
-                rect1.bottom < rect2.top ||
-                rect1.top > rect2.bottom);
-        }
-
-        // Función para verificar colisión entre helicóptero y objetivo/lúpulo
-        function verificarColisionHelicoptero(elemento) { // Ahora puede verificar colisión con objetivos o lúpulos
-            // Solo verificar si el elemento todavía está en el DOM
-             if (!elemento.parentElement) return false;
-            return verificarColision(helicoptero, elemento);
-        }
-
-        // Función para manejar el fin del juego
-        function gameOver() {
-            if (!juegoActivo) return; // Evitar llamar a gameOver múltiples veces
-            console.log('Game Over activado.'); // Log de depuración
-            juegoActivo = false;
-            sonidos.gameOver.play();
-            juego.style.display = 'none';
-            finJuego.style.display = 'block';
-            puntuacionFinal.textContent = 'Puntuación final: ' + puntuacion;
-            // Limpiar intervalos para detener la creación de objetivos, nubes y lúpulos
-            clearInterval(objetivoInterval);
-            clearInterval(nubeInterval);
-            clearInterval(lupuloInterval);
-            // Limpiar intervalos de movimiento si están activos
-            clearInterval(moveUpInterval);
-            clearInterval(moveDownInterval);
-
-            // Eliminar todos los objetivos, nubes y lúpulos restantes
-            gameArea.querySelectorAll('.target').forEach(objetivo => objetivo.remove());
-            gameArea.querySelectorAll('.cloud').forEach(nube => nube.remove());
-            gameArea.querySelectorAll('.lupulo').forEach(lupulo => lupulo.remove());
-             // Eliminar todos los láseres restantes
-            lasers.forEach(laser => laser.remove());
-            lasers = []; // Vaciar el array de láseres
-
-            // Resetear el bonus de disparo al finalizar el juego
-            shotPower = 0;
         }
 
         // Función para crear un láser
@@ -656,7 +609,7 @@
 
             const intervalo = setInterval(() => {
                  // Verificar si el juego sigue activo en cada paso del intervalo
-                if (!juegoActivo || !laser.parentElement) { // Verificar si el láser todavía está en el DOM
+                if (!juegoActivo || !laser.parentElement) { // Verificar si el juego todavía está en el DOM
                     clearInterval(intervalo);
                     return;
                 }
@@ -717,16 +670,213 @@
                     sonidos.explosion.play();
                     puntuacion++;
                     objetivosEliminados++;
-                    puntuacionElem.textContent = 'Puntuación: ' + puntuacion;
-                    if (objetivosEliminados % 10 === 0) {
-                        velocidadObjetivos += 1;
-                    }
+                    actualizarPuntuacion(); // Llamar a la función para actualizar puntuación y verificar bonus/dificultad
+                    // El incremento de velocidad por objetivos eliminados cada 10 ya está en actualizarPuntuacion
+                    // if (objetivosEliminados % 10 === 0) {
+                    //     velocidadObjetivos += 1;
+                    // }
 
                     // No es necesario detener el intervalo del objetivo aquí,
                     // ya que el objetivo fue removido y su intervalo se detendrá
                     // en la próxima iteración o cuando salga de pantalla.
                 }
             });
+        }
+
+        // Función para crear una bomba (lanza hacia abajo)
+        function crearBomba() {
+             if (!juegoActivo) return;
+             console.log('Creando bomba...'); // Log de depuración
+             const bomba = document.createElement('div');
+             bomba.classList.add('bomba');
+
+             // Posición inicial de la bomba (debajo del helicóptero)
+             const helicopteroRect = helicoptero.getBoundingClientRect();
+             const gameAreaRect = gameArea.getBoundingClientRect();
+             let startX = (helicopteroRect.left - gameAreaRect.left) + helicoptero.offsetWidth / 2 - 7.5; // Centrar horizontalmente (15px ancho / 2)
+             let startY = (helicopteroRect.bottom - gameAreaRect.top); // Justo debajo del helicóptero
+
+             bomba.style.left = startX + 'px';
+             bomba.style.top = startY + 'px';
+
+             gameArea.appendChild(bomba); // Añadir al área de juego
+             bombas.push(bomba);
+             moverBomba(bomba);
+        }
+
+         // Función para mover una bomba
+        function moverBomba(bomba) {
+             if (!juegoActivo || !bomba.parentElement) { // Verificar si la bomba todavía está en el DOM
+                 return;
+            }
+            let bombaY = parseFloat(bomba.style.top);
+            const velocidadBomba = 5; // Velocidad de caída de la bomba
+
+            const intervalo = setInterval(() => {
+                 // Verificar si el juego sigue activo en cada paso del intervalo
+                if (!juegoActivo || !bomba.parentElement) { // Verificar si la bomba todavía está en el DOM
+                    clearInterval(intervalo);
+                    return;
+                }
+
+                bombaY += velocidadBomba;
+                bomba.style.top = bombaY + 'px';
+
+                // Verificar si la bomba sale del área de juego (abajo)
+                const gameAreaRect = gameArea.getBoundingClientRect();
+                const bombaRect = bomba.getBoundingClientRect();
+
+                if (bombaRect.top > gameAreaRect.bottom) { // Sale por abajo
+                    clearInterval(intervalo);
+                    bomba.remove();
+                     // Encontrar y eliminar la bomba del array
+                    const bombaIndex = bombas.indexOf(bomba);
+                    if (bombaIndex > -1) {
+                        bombas.splice(bombaIndex, 1);
+                    }
+                } else {
+                    // *** VERIFICAR COLISIÓN CON OBJETIVOS AQUÍ ***
+                    verificarColisionBomba(bomba);
+                }
+            }, 20); // Intervalo de tiempo para el movimiento
+        }
+
+         // Función para verificar colisión entre bomba y objetivos
+        function verificarColisionBomba(bomba) {
+            // Solo verificar si la bomba todavía está en el DOM
+             if (!bomba.parentElement) return;
+
+            const bombaRect = bomba.getBoundingClientRect();
+            // Iterar sobre los objetivos dentro del área de juego
+            gameArea.querySelectorAll('.target').forEach(objetivo => {
+                // Solo verificar si el objetivo todavía está en el DOM
+                if (!objetivo.parentElement) return;
+
+                const objetivoRect = objetivo.getBoundingClientRect();
+                if (verificarColision(bomba, objetivo)) {
+                    console.log('Colisión bomba-objetivo detectada. Eliminando objetivo.'); // Log de depuración
+                    // Colisión detectada: eliminar bomba y objetivo
+                    bomba.remove();
+                    objetivo.remove();
+
+                    // Encontrar y eliminar el bomba del array
+                    const bombaIndex = bombas.indexOf(bomba);
+                    if (bombaIndex > -1) {
+                        bombas.splice(bombaIndex, 1);
+                    }
+
+                    sonidos.explosion.play();
+                    // La bomba no suma puntos, solo elimina obstáculos
+                }
+            });
+        }
+
+
+        // Función para verificar colisión (general, usada para láser vs objetivo, helicóptero vs lúpulo/objetivo, bomba vs objetivo)
+        function verificarColision(elemento1, elemento2) {
+            const rect1 = elemento1.getBoundingClientRect();
+            const rect2 = elemento2.getBoundingClientRect();
+            return !(rect1.right < rect2.left ||
+                rect1.left > rect2.right ||
+                rect1.bottom < rect2.top ||
+                rect1.top > rect2.bottom);
+        }
+
+        // Función para verificar colisión entre helicóptero y objetivo/lúpulo
+        function verificarColisionHelicoptero(elemento) { // Ahora puede verificar colisión con objetivos o lúpulos
+            // Solo verificar si el elemento todavía está en el DOM
+             if (!elemento.parentElement) return false;
+            return verificarColision(helicoptero, elemento);
+        }
+
+        // Función para manejar el fin del juego
+        function gameOver() {
+            if (!juegoActivo) return; // Evitar llamar a gameOver múltiples veces
+            console.log('Game Over activado.'); // Log de depuración
+            juegoActivo = false;
+            sonidos.gameOver.play();
+            juego.style.display = 'none';
+            finJuego.style.display = 'block';
+            puntuacionFinal.textContent = 'Puntuación final: ' + puntuacion;
+            // Limpiar intervalos para detener la creación de objetivos, nubes y lúpulos
+            clearInterval(objetivoInterval);
+            clearInterval(nubeInterval);
+            clearInterval(lupuloInterval);
+            // Limpiar intervalos de movimiento si están activos
+            clearInterval(moveUpInterval);
+            clearInterval(moveDownInterval);
+
+            // Eliminar todos los elementos restantes
+            gameArea.querySelectorAll('.target').forEach(objetivo => objetivo.remove());
+            gameArea.querySelectorAll('.cloud').forEach(nube => nube.remove());
+            gameArea.querySelectorAll('.lupulo').forEach(lupulo => lupulo.remove());
+            gameArea.querySelectorAll('.laser').forEach(laser => laser.remove());
+            gameArea.querySelectorAll('.bomba').forEach(bomba => bomba.remove());
+             lasers = []; // Vaciar el array de láseres
+             bombas = []; // Vaciar el array de bombas
+
+            // Resetear el bonus de disparo y velocidad de objetivos al finalizar el juego
+            shotPower = 0;
+            velocidadObjetivos = velocidadObjetivosInicial; // Resetear velocidad de objetivos
+            lastScoreIncrease = 0; // Resetear el rastreador de incremento por puntos
+            lastLupuloScore = 0; // Resetear el rastreador de lúpulo
+        }
+
+
+        // Función para actualizar la puntuación y verificar bonus/incremento de dificultad
+        function actualizarPuntuacion() {
+            puntuacionElem.textContent = 'Puntuación: ' + puntuacion;
+
+            // Incrementar velocidad de objetivos cada 10 puntos
+            if (puntuacion > lastScoreIncrease && puntuacion % 10 === 0) {
+                velocidadObjetivos += objetivoSpeedIncrementPorDiezPuntos;
+                lastScoreIncrease = puntuacion;
+                console.log(`Puntuación ${puntuacion}. Velocidad de objetivos aumentada a: ${velocidadObjetivos}`);
+            }
+
+            // Intentar crear lúpulo cada 15 puntos
+            if (juegoActivo && puntuacion >= 15 && puntuacion % 15 === 0 && puntuacion > lastLupuloScore) {
+                 crearLupulo();
+            }
+        }
+
+        // Función principal de disparo (definida aquí para asegurar que las funciones de creación estén disponibles)
+         function dispararHelicoptero() {
+            console.log('Intentando disparar...'); // Log de depuración
+            if (!juegoActivo) {
+                console.log('Juego no activo, no se puede disparar.'); // Log de depuración
+                return;
+            }
+             console.log('Juego activo, procediendo a disparar.'); // Log de depuración
+            sonidos.disparo.play();
+            // Animación de retroceso del helicóptero
+            helicoptero.style.transition = 'transform 0.1s ease-in-out';
+            helicoptero.style.transform = 'translateY(-50%) translateX(-10px)'; // Retrocede un poco
+            setTimeout(() => {
+                 helicoptero.style.transform = 'translateY(-50%) translateX(0)'; // Vuelve a la posición normal
+                 helicoptero.style.transition = ''; // Elimina la transición para el movimiento normal
+            }, 100); // Duración del retroceso
+
+            // Crear láser(es) basado en shotPower
+            const currentLaserWidth = laserBaseWidth + shotPower * laserWidthIncrement;
+            if (shotPower === 0) {
+                // Disparo simple
+                crearLaser(laserBaseWidth, 0); // Recto
+            } else if (shotPower === 1) {
+                // Dos disparos: recto y diagonal abajo
+                crearLaser(currentLaserWidth, 0); // Recto
+                crearLaser(currentLaserWidth, 15); // Diagonal abajo (ajusta el ángulo si es necesario)
+            } else if (shotPower >= 2) {
+                // Tres disparos: recto, diagonal arriba y diagonal abajo
+                crearLaser(currentLaserWidth, 0); // Recto
+                crearLaser(currentLaserWidth, -15); // Diagonal arriba (ajusta el ángulo si es necesario)
+                crearLaser(currentLaserWidth, 15); // Diagonal abajo (ajusta el ángulo si es necesario)
+            }
+
+            // Crear bomba si shotPower es 3 o más
+            if (shotPower >= 3) {
+                crearBomba();
+            }
         }
 
 
@@ -848,7 +998,7 @@
                 }
                 helicoptero.style.top = helicopteroY + 'px';
 
-                // Nota: La posición de los objetivos, nubes y láseres ya creados
+                // Nota: La posición de los objetivos, nubes, lúpulos, láseres y bombas ya creados
                 // no se reajustará automáticamente al redimensionar.
                 // Si esto es un problema, se necesitaría lógica adicional aquí
                 // para iterar sobre ellos y actualizar sus posiciones relativas.
@@ -864,16 +1014,20 @@
             juego.style.display = 'flex'; // Usamos flex para mostrar el contenedor del juego y botones
             puntuacion = 0;
             objetivosEliminados = 0;
-            velocidadObjetivos = 2;
+            velocidadObjetivos = velocidadObjetivosInicial; // Resetear velocidad de objetivos a la inicial
             shotPower = 0; // Resetear shotPower al inicio del juego
+            lastScoreIncrease = 0; // Resetear el rastreador de incremento por puntos
+            lastLupuloScore = 0; // Resetear el rastreador de lúpulo
             puntuacionElem.textContent = 'Puntuación: 0';
-            // Eliminar objetivos y nubes existentes del área de juego
+            // Eliminar elementos existentes del área de juego
             gameArea.querySelectorAll('.target').forEach(objetivo => objetivo.remove());
             gameArea.querySelectorAll('.cloud').forEach(nube => nube.remove());
-             gameArea.querySelectorAll('.lupulo').forEach(lupulo => lupulo.remove()); // Eliminar lúpulos existentes
-            // Eliminar láseres existentes
-             lasers.forEach(laser => laser.remove());
+            gameArea.querySelectorAll('.lupulo').forEach(lupulo => lupulo.remove());
+            gameArea.querySelectorAll('.laser').forEach(laser => laser.remove());
+            gameArea.querySelectorAll('.bomba').forEach(bomba => bomba.remove()); // Eliminar bombas existentes
              lasers = []; // Vaciar el array de láseres
+             bombas = []; // Vaciar el array de bombas
+
 
             juegoActivo = true;
              console.log('juegoActivo = true'); // Log de depuración
@@ -890,11 +1044,12 @@
             console.log(`Posición inicial del helicóptero: ${helicoptero.style.top}, ${helicoptero.style.left}`); // Log de depuración
 
 
-            // Iniciar la creación de objetivos, nubes y lúpulos
-            objetivoInterval = setInterval(crearObjetivo, 2000);
-            nubeInterval = setInterval(crearNube, 3000);
-            lupuloInterval = setInterval(crearLupulo, 15000); // Intentar crear lúpulo cada 15 segundos (ajusta el tiempo)
-            console.log('Intervalos de creación iniciados.'); // Log de depuración
+            // Iniciar la creación de objetivos y nubes
+            objetivoInterval = setInterval(crearObjetivo, 2000); // Intervalo inicial de objetivos
+            nubeInterval = setInterval(crearNube, 3000); // Intervalo inicial de nubes
+            // El lúpulo se creará basado en la puntuación, no en un intervalo fijo
+            // lupuloInterval = setInterval(crearLupulo, 15000); // Eliminado el intervalo fijo
+            console.log('Intervalos de creación de objetivos y nubes iniciados.'); // Log de depuración
         });
 
         // Event listener para el botón Reiniciar
@@ -904,16 +1059,20 @@
             juego.style.display = 'flex'; // Usamos flex para mostrar el contenedor del juego y botones
             puntuacion = 0;
             objetivosEliminados = 0;
-            velocidadObjetivos = 2;
+            velocidadObjetivos = velocidadObjetivosInicial; // Resetear velocidad de objetivos a la inicial
             shotPower = 0; // Resetear shotPower al reiniciar el juego
+             lastScoreIncrease = 0; // Resetear el rastreador de incremento por puntos
+            lastLupuloScore = 0; // Resetear el rastreador de lúpulo
             puntuacionElem.textContent = 'Puntuación: 0';
-             // Eliminar objetivos y nubes existentes del área de juego
+             // Eliminar elementos existentes del área de juego
             gameArea.querySelectorAll('.target').forEach(objetivo => objetivo.remove());
             gameArea.querySelectorAll('.cloud').forEach(nube => nube.remove());
-             gameArea.querySelectorAll('.lupulo').forEach(lupulo => lupulo.remove()); // Eliminar lúpulos existentes
-             // Eliminar láseres existentes
-            lasers.forEach(laser => laser.remove());
-            lasers = []; // Vaciar el array de láseres
+            gameArea.querySelectorAll('.lupulo').forEach(lupulo => lupulo.remove());
+            gameArea.querySelectorAll('.laser').forEach(laser => laser.remove());
+            gameArea.querySelectorAll('.bomba').forEach(bomba => bomba.remove()); // Eliminar bombas restantes
+             lasers = []; // Vaciar el array de láseres
+             bombas = []; // Vaciar el array de bombas
+
 
             juegoActivo = true;
              console.log('juegoActivo = true'); // Log de depuración
@@ -930,12 +1089,30 @@
              console.log(`Posición inicial del helicóptero: ${helicoptero.style.top}, ${helicoptero.style.left}`); // Log de depuración
 
 
-            // Reiniciar la creación de objetivos, nubes y lúpulos
-            objetivoInterval = setInterval(crearObjetivo, 2000);
-            nubeInterval = setInterval(crearNube, 3000);
-            lupuloInterval = setInterval(crearLupulo, 15000); // Intentar crear lúpulo cada 15 segundos (ajusta el tiempo)
-             console.log('Intervalos de creación reiniciados.'); // Log de depuración
+            // Reiniciar la creación de objetivos y nubes
+            objetivoInterval = setInterval(crearObjetivo, 2000); // Intervalo inicial de objetivos
+            nubeInterval = setInterval(crearNube, 3000); // Intervalo inicial de nubes
+             // El lúpulo se creará basado en la puntuación, no en un intervalo fijo
+            // lupuloInterval = setInterval(crearLupulo, 15000); // Eliminado el intervalo fijo
+             console.log('Intervalos de creación de objetivos y nubes reiniciados.'); // Log de depuración
         });
+
+        // Función para actualizar la puntuación y verificar bonus/incremento de dificultad
+        function actualizarPuntuacion() {
+            puntuacionElem.textContent = 'Puntuación: ' + puntuacion;
+
+            // Incrementar velocidad de objetivos cada 10 puntos
+            if (puntuacion > lastScoreIncrease && puntuacion % 10 === 0) {
+                velocidadObjetivos += objetivoSpeedIncrementPorDiezPuntos;
+                lastScoreIncrease = puntuacion;
+                console.log(`Puntuación ${puntuacion}. Velocidad de objetivos aumentada a: ${velocidadObjetivos}`);
+            }
+
+            // Intentar crear lúpulo cada 15 puntos
+            if (juegoActivo && puntuacion >= 15 && puntuacion % 15 === 0 && puntuacion > lastLupuloScore) {
+                 crearLupulo();
+            }
+        }
     </script>
 </body>
 </html>
