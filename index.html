@@ -3,33 +3,806 @@
 <head>
     <title>LOLA shot</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" type="text/css" href="style.css">
+    <style>
+        /* Estilos CSS integrados */
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: linear-gradient(to top, LightGray, SteelBlue);
+            /* Usamos flexbox para organizar el contenido principal */
+            display: flex;
+            flex-direction: column;
+            height: 100vh; /* Ocupa toda la altura de la ventana */
+            justify-content: center; /* Centra verticalmente el contenido del body */
+            align-items: center; /* Centra horizontalmente el contenido del body */
+            padding: 10px; /* Añade un pequeño padding al body para que el juego no toque los bordes */
+            box-sizing: border-box; /* Incluye el padding en el tamaño total del body */
+        }
+
+        #inicio {
+            /* Ya está centrado con transform, pero aseguramos que no interfiera */
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 20; /* Aseguramos que esté por encima del juego */
+            /* Aseguramos que no sea más ancho que la pantalla */
+            max-width: 95%;
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        #inicio h1 {
+            font-size: 2em; /* Tamaño de fuente relativo */
+            margin-bottom: 20px;
+        }
+
+        #inicio button {
+             padding: 10px 20px;
+             font-size: 1.2em;
+             cursor: pointer;
+        }
+
+
+        #juego {
+            position: relative;
+            width: 100%; /* Ocupa todo el ancho disponible dentro del body centrado */
+            max-width: 800px; /* Limita el ancho máximo en pantallas grandes */
+            height: 100%; /* Ocupa la altura disponible dentro del body flex */
+            max-height: 90vh; /* Limita la altura máxima para dejar espacio a los botones */
+            display: flex; /* Usamos flexbox para separar el área de juego y los botones */
+            flex-direction: column;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5); /* Agrega una sombra para destacarlo */
+            border-radius: 10px; /* Bordes redondeados */
+            overflow: hidden; /* Asegura que los elementos internos no se salgan de los bordes redondeados */
+        }
+
+        #game-area {
+            position: relative; /* Los elementos dentro se posicionarán respecto a esta área */
+            flex-grow: 1; /* El área de juego ocupa la mayor parte del espacio */
+            overflow: hidden; /* Oculta los elementos que salgan del área */
+            background-color: rgba(255, 255, 255, 0.3); /* Fondo semi-transparente para el área de juego */
+
+            /* Fondo de imagen animado */
+            background-image: url('https://raw.githubusercontent.com/MauroCasarin/LOLA-shot/refs/heads/main/nubesfondo.jpg');
+            background-repeat: repeat-x; /* Repetir horizontalmente */
+            background-position: 0 0; /* Posición inicial */
+            /* Animación de desplazamiento - Ajustada a 15s para mayor velocidad */
+            animation: scrollBackground 15s linear infinite;
+            /* Aseguramos que el fondo cubra el área */
+            background-size: cover; /* O 'contain' dependiendo del efecto deseado */
+        }
+
+        /* Definición de la animación del fondo */
+        @keyframes scrollBackground {
+            from {
+                background-position: 0 0;
+            }
+            to {
+                background-position: 100% 0; /* Desplazar al 100% del ancho */
+            }
+        }
+
+
+        #helicoptero {
+            position: absolute;
+            /* Usamos unidades relativas o una combinación */
+            width: 8vw; /* Ancho relativo al viewport width */
+            height: auto; /* Mantiene la proporción */
+            max-width: 60px; /* Tamaño máximo para pantallas grandes */
+            min-width: 40px; /* Tamaño mínimo para pantallas pequeñas */
+            /* Posicionamiento inicial dentro del área de juego */
+            top: 50%;
+            left: 10%;
+            transform: translateY(-50%);
+            z-index: 5; /* Asegura que el helicóptero esté por encima del fondo y nubes */
+        }
+
+        #botones {
+            display: flex;
+            justify-content: space-between; /* Distribuye el espacio entre los grupos de botones */
+            align-items: center; /* Centra los botones verticalmente */
+            padding: 10px; /* Espacio alrededor de los botones */
+            background-color: rgba(0, 0, 0, 0.2); /* Fondo semi-transparente para la barra de botones */
+            flex-shrink: 0; /* Evita que los botones se encojan */
+        }
+
+        #botones .left-buttons {
+            display: flex;
+            flex-direction: column; /* Botones arriba/abajo apilados verticalmente */
+            align-items: flex-start; /* Alinea los botones a la izquierda dentro de su contenedor */
+        }
+
+        #botones .right-button {
+             display: flex;
+             align-items: center; /* Centra verticalmente el botón disparar */
+        }
+
+
+        #botones button {
+            padding: 5px; /* Ajusta el padding de los botones */
+            margin: 5px; /* Espacio entre botones */
+            font-size: 1rem; /* Tamaño de fuente legible */
+            border: none;
+            background-color: transparent; /* Fondo transparente para los botones */
+            cursor: pointer;
+        }
+
+        #botones button img {
+            /* Usamos unidades relativas o una combinación para las imágenes de los botones */
+            width: 10vw; /* Ancho relativo al viewport width */
+            height: auto; /* Mantiene la proporción */
+            max-width: 60px; /* Tamaño máximo */
+            min-width: 40px; /* Tamaño mínimo */
+        }
+
+        .target {
+            position: absolute;
+            /* Usamos unidades relativas o una combinación */
+            width: 7vw; /* Ancho relativo al viewport width */
+            height: auto; /* Mantiene la proporción */
+            max-width: 50px; /* Tamaño máximo */
+            min-width: 30px; /* Tamaño mínimo */
+            z-index: 5; /* Asegura que los objetivos estén por encima del fondo y nubes */
+        }
+
+        .cloud {
+            position: absolute;
+             /* Usamos unidades relativas o una combinación */
+            width: 15vw; /* Ancho relativo al viewport width */
+            height: auto; /* Mantiene la proporción */
+            max-width: 150px; /* Tamaño máximo */
+            min-width: 80px; /* Tamaño mínimo */
+            z-index: 1; /* Aseguramos que las nubes estén detrás del helicóptero y objetivos */
+        }
+
+        #puntuacion {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 1.5rem; /* Tamaño de fuente legible */
+            color: black;
+            z-index: 10; /* Aseguramos que la puntuación esté encima */
+        }
+
+        #fin-juego {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 30; /* Aseguramos que esté por encima de todo */
+            background-color: rgba(255, 255, 255, 0.9); /* Fondo semi-transparente */
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+             /* Aseguramos que no sea más ancho que la pantalla */
+            max-width: 95%;
+        }
+
+         #fin-juego h1 {
+             font-size: 2em; /* Tamaño de fuente relativo */
+             margin-bottom: 10px;
+         }
+
+         #fin-juego p {
+             font-size: 1.2em; /* Tamaño de fuente relativo */
+             margin-bottom: 20px;
+         }
+
+         #fin-juego button {
+             padding: 10px 20px;
+             font-size: 1.2em;
+             cursor: pointer;
+         }
+
+
+        .laser {
+            position: absolute;
+            width: 10px; /* El láser puede mantener un tamaño fijo */
+            height: 4px;
+            background-color: green;
+            z-index: 6; /* Asegura que los láseres estén por encima del helicóptero y objetivos */
+        }
+
+        /* Media query para ajustar estilos en pantallas más pequeñas si es necesario */
+        @media (max-width: 600px) {
+            #juego {
+                max-width: 100%; /* En pantallas pequeñas, ocupa todo el ancho */
+                max-height: 85vh; /* Deja un poco más de espacio para los botones en móvil */
+            }
+
+            #botones button img {
+                width: 15vw; /* Haz los botones un poco más grandes en móvil */
+                max-width: 70px; /* Ajusta el tamaño máximo */
+            }
+
+             #botones button {
+                 padding: 8px; /* Ajusta el padding */
+                 margin: 3px; /* Ajusta el margen */
+             }
+
+             #puntuacion {
+                 font-size: 1.2rem; /* Ajusta el tamaño de la fuente de la puntuación */
+             }
+        }
+
+    </style>
 </head>
 <body>
     <div id="inicio">
         <h1>LOLA shot</h1>
         <button id="jugar">Jugar</button>
     </div>
+
     <div id="juego" style="display: none;">
-        <div id="puntuacion">Puntuación: 0</div>
-        <img id="helicoptero" src="https://raw.githubusercontent.com/MauroCasarin/Lola-Game/refs/heads/main/lola.gif" alt="Helicóptero">
+        <div id="game-area">
+            <div id="puntuacion">Puntuación: 0</div>
+            <img id="helicoptero" src="https://raw.githubusercontent.com/MauroCasarin/Lola-Game/refs/heads/main/lola.gif" alt="Helicóptero">
+            </div>
         <div id="botones">
-            <button id="arriba">
-                <img src="https://raw.githubusercontent.com/MauroCasarin/LOLA-shot/refs/heads/main/BOTarriba.png" alt="Arriba">
-            </button>
-            <button id="disparar">
-                <img src="https://raw.githubusercontent.com/MauroCasarin/LOLA-shot/refs/heads/main/BOTdisparo.png" alt="Disparar">
-            </button>
-            <button id="abajo">
-                <img src="https://raw.githubusercontent.com/MauroCasarin/LOLA-shot/refs/heads/main/BOTAbajo.png" alt="Abajo">
-            </button>
+            <div class="left-buttons">
+                 <button id="arriba">
+                    <img src="https://raw.githubusercontent.com/MauroCasarin/LOLA-shot/refs/heads/main/BOTarriba.png" alt="Arriba">
+                </button>
+                <button id="abajo">
+                    <img src="https://raw.githubusercontent.com/MauroCasarin/LOLA-shot/refs/heads/main/BOTAbajo.png" alt="Abajo">
+                </button>
+            </div>
+             <div class="right-button">
+                <button id="disparar">
+                    <img src="https://raw.githubusercontent.com/MauroCasarin/LOLA-shot/refs/heads/main/BOTdisparo.png" alt="Disparar">
+                </button>
+            </div>
         </div>
     </div>
+
     <div id="fin-juego" style="display: none;">
         <h1>¡Fin del juego!</h1>
         <p id="puntuacion-final"></p>
         <button id="reiniciar">Reiniciar</button>
     </div>
-    <script src="script.js"></script>
+
+    <script>
+        // Código JavaScript integrado
+        const inicio = document.getElementById('inicio');
+        const juego = document.getElementById('juego');
+        const finJuego = document.getElementById('fin-juego');
+        const jugarBtn = document.getElementById('jugar');
+        const reiniciarBtn = document.getElementById('reiniciar');
+        const helicoptero = document.getElementById('helicoptero');
+        const puntuacionElem = document.getElementById('puntuacion');
+        const puntuacionFinal = document.getElementById('puntuacion-final');
+        const arribaBtn = document.getElementById('arriba');
+        const dispararBtn = document.getElementById('disparar');
+        const abajoBtn = document.getElementById('abajo');
+        const gameArea = document.getElementById('game-area'); // Referencia a la nueva área de juego
+
+
+        let puntuacion = 0;
+        let helicopteroY = 0;
+        let velocidadObjetivos = 2;
+        let objetivosEliminados = 0;
+        let juegoActivo = false;
+        let lasers = [];
+
+        // Variables para el movimiento continuo
+        let moveUpInterval = null;
+        let moveDownInterval = null;
+
+        // Variables para almacenar los intervalos de creación
+        let objetivoInterval;
+        let nubeInterval;
+
+
+        const objetivosSrc = [
+            "https://raw.githubusercontent.com/MauroCasarin/Lola-Game/e17ef4a544f71b08c4cf0418af133e7834ac7157/brahma.png",
+            "https://raw.githubusercontent.com/MauroCasarin/Lola-Game/refs/heads/main/quilmes.png",
+            "https://raw.githubusercontent.com/MauroCasarin/Lola-Game/refs/heads/main/Bud.jpg",
+            "https://raw.githubusercontent.com/MauroCasarin/Lola-Game/refs/heads/main/stela.png"
+
+        ];
+
+        const nubesSrc = [
+            "https://raw.githubusercontent.com/MauroCasarin/Lola-Game/9af808195ce2abfb240dc4f890d329acf0f09e55/cloud.svg",
+            "https://raw.githubusercontent.com/MauroCasarin/Lola-Game/9af808195ce2abfb240dc4f890d329acf0f09e55/cloud2.svg"
+        ];
+
+        const sonidos = {
+            disparo: new Audio("http://www.marcelomagni.com.ar/sound/disparo.mp3"),
+            explosion: new Audio("http://www.marcelomagni.com.ar/sound/explo.mp3"),
+            caida: new Audio("http://www.marcelomagni.com.ar/sound/caenobj.mp3"),
+            gameOver: new Audio("http://www.marcelomagni.com.ar/sound/game-over.mp3")
+        };
+
+        // --- Funciones de movimiento del helicóptero ---
+        function moverHelicopteroArriba() {
+            if (!juegoActivo) return;
+            const gameAreaRect = gameArea.getBoundingClientRect();
+            const altoGameArea = gameAreaRect.height;
+            const altoHelicoptero = helicoptero.offsetHeight;
+
+            helicopteroY -= 20;
+            // Limitar el movimiento dentro del área de juego
+            if (helicopteroY < 0) helicopteroY = 0;
+            helicoptero.style.top = helicopteroY + 'px';
+        }
+
+        function dispararHelicoptero() {
+            if (!juegoActivo) return;
+            sonidos.disparo.play();
+            // Animación de retroceso del helicóptero
+            helicoptero.style.transition = 'transform 0.1s ease-in-out';
+            helicoptero.style.transform = 'translateY(-50%) translateX(-10px)'; // Retrocede un poco
+            setTimeout(() => {
+                 helicoptero.style.transform = 'translateY(-50%) translateX(0)'; // Vuelve a la posición normal
+                 helicoptero.style.transition = ''; // Elimina la transición para el movimiento normal
+            }, 100); // Duración del retroceso
+
+            crearLaser();
+        }
+
+        function moverHelicopteroAbajo() {
+            if (!juegoActivo) return;
+            const gameAreaRect = gameArea.getBoundingClientRect();
+            const altoGameArea = gameAreaRect.height;
+            const altoHelicoptero = helicoptero.offsetHeight;
+
+            helicopteroY += 20;
+             // Limitar el movimiento dentro del área de juego
+            if (helicopteroY > altoGameArea - altoHelicoptero) helicopteroY = altoGameArea - altoHelicoptero;
+            helicoptero.style.top = helicopteroY + 'px';
+        }
+         // --- Fin de funciones de movimiento del helicóptero ---
+
+
+        // Función para crear un objetivo
+        function crearObjetivo() {
+            if (!juegoActivo) return;
+            console.log('Creando objetivo...'); // Log de depuración
+            const objetivo = document.createElement('img');
+            objetivo.src = objetivosSrc[Math.floor(Math.random() * objetivosSrc.length)];
+            objetivo.classList.add('target');
+
+            // Añadir temporalmente al DOM para obtener dimensiones
+            gameArea.appendChild(objetivo);
+
+            // Obtener la altura del área de juego y del objetivo
+            const gameAreaRect = gameArea.getBoundingClientRect();
+            const altoGameArea = gameAreaRect.height;
+            const altoObjetivo = objetivo.offsetHeight;
+
+            // Generar posición vertical aleatoria dentro del área de juego
+            objetivo.style.top = Math.random() * (altoGameArea - altoObjetivo) + 'px';
+            // Posicionar inicialmente fuera del área visible a la derecha del contenedor #juego
+            const juegoRect = juego.getBoundingClientRect();
+            objetivo.style.left = juegoRect.width + 'px'; // Usar el ancho del contenedor #juego
+
+            // Mover el objetivo
+            moverObjetivo(objetivo);
+        }
+
+        // Función para mover un objetivo
+        function moverObjetivo(objetivo) {
+            if (!juegoActivo || !objetivo.parentElement) { // Verificar si el objetivo todavía está en el DOM
+                 return;
+            }
+            let objetivoX = parseInt(objetivo.style.left);
+            const intervalo = setInterval(() => {
+                // Verificar si el juego sigue activo en cada paso del intervalo
+                if (!juegoActivo || !objetivo.parentElement) { // Verificar si el objetivo todavía está en el DOM
+                    clearInterval(intervalo);
+                    return;
+                }
+
+                objetivoX -= velocidadObjetivos;
+                objetivo.style.left = objetivoX + 'px';
+
+                // Verificar si el objetivo sale del área de juego (izquierda)
+                if (objetivoX < -objetivo.offsetWidth) { // Usar offsetWidth para el ancho real del objetivo
+                    clearInterval(intervalo);
+                    objetivo.remove();
+                } else {
+                    // *** VERIFICAR COLISIÓN CON EL HELICÓPTERO AQUÍ ***
+                    if (verificarColisionHelicoptero(objetivo)) {
+                        console.log('Colisión con helicóptero detectada. Game Over.'); // Log de depuración
+                        clearInterval(intervalo); // Detener el movimiento del objetivo
+                        // objetivo.remove(); // No remover el objetivo inmediatamente para que la colisión sea visible brevemente
+                        gameOver(); // Activar Game Over
+                         return; // Salir del intervalo después de Game Over
+                    }
+                     // La colisión con el láser se verifica en moverLaser
+                }
+            }, 20);
+        }
+
+        // Función para crear una nube
+        function crearNube() {
+            if (!juegoActivo) return;
+            console.log('Creando nube...'); // Log de depuración
+            // Limitar el número de nubes para no saturar
+            if (gameArea.querySelectorAll('.cloud').length < 5) { // Aumentamos el límite de nubes
+                const nube = document.createElement('img');
+                nube.src = nubesSrc[Math.floor(Math.random() * nubesSrc.length)];
+                nube.classList.add('cloud');
+
+                 // Añadir temporalmente al DOM para obtener dimensiones
+                gameArea.appendChild(nube);
+
+                // Obtener la altura del área de juego y de la nube
+                const gameAreaRect = gameArea.getBoundingClientRect();
+                const altoGameArea = gameAreaRect.height;
+                const altoNube = nube.offsetHeight;
+
+
+                // Generar posición vertical aleatoria dentro del área de juego
+                nube.style.top = Math.random() * (altoGameArea - altoNube) + 'px';
+                 // Posicionar inicialmente fuera del área visible a la derecha del contenedor #juego
+                const juegoRect = juego.getBoundingClientRect();
+                nube.style.left = juegoRect.width + 'px'; // Usar el ancho del contenedor #juego
+                moverNube(nube);
+            }
+        }
+
+        // Función para mover una nube
+        function moverNube(nube) {
+             if (!juegoActivo || !nube.parentElement) { // Verificar si la nube todavía está en el DOM
+                 return;
+            }
+            let nubeX = parseInt(nube.style.left);
+            // Velocidad de la nube más lenta que los objetivos
+            const velocidadNube = 0.5; // Ajusta esta velocidad si quieres que vayan más rápido o lento
+            const intervalo = setInterval(() => {
+                 // Verificar si el juego sigue activo en cada paso del intervalo
+                if (!juegoActivo || !nube.parentElement) { // Verificar si la nube todavía está en el DOM
+                    clearInterval(intervalo);
+                    return;
+                }
+
+                nubeX -= velocidadNube;
+                nube.style.left = nubeX + 'px';
+                 // Verificar si la nube sale del área de juego (izquierda)
+                if (nubeX < -nube.offsetWidth) { // Usar offsetWidth para el ancho real de la nube
+                    clearInterval(intervalo);
+                    nube.remove();
+                }
+            }, 50); // Intervalo de tiempo para el movimiento
+        }
+
+        // Función para verificar colisión (general, usada para láser vs objetivo)
+        function verificarColision(elemento1, elemento2) {
+            const rect1 = elemento1.getBoundingClientRect();
+            const rect2 = elemento2.getBoundingClientRect();
+            return !(rect1.right < rect2.left ||
+                rect1.left > rect2.right ||
+                rect1.bottom < rect2.top ||
+                rect1.top > rect2.bottom);
+        }
+
+        // Función para verificar colisión entre helicóptero y objetivo
+        function verificarColisionHelicoptero(objetivo) {
+            // Solo verificar si el objetivo todavía está en el DOM
+             if (!objetivo.parentElement) return false;
+            return verificarColision(helicoptero, objetivo);
+        }
+
+        // Función para manejar el fin del juego
+        function gameOver() {
+            if (!juegoActivo) return; // Evitar llamar a gameOver múltiples veces
+            console.log('Game Over activado.'); // Log de depuración
+            juegoActivo = false;
+            sonidos.gameOver.play();
+            juego.style.display = 'none';
+            finJuego.style.display = 'block';
+            puntuacionFinal.textContent = 'Puntuación final: ' + puntuacion;
+            // Limpiar intervalos para detener la creación de objetivos y nubes
+            clearInterval(objetivoInterval);
+            clearInterval(nubeInterval);
+            // Limpiar intervalos de movimiento si están activos
+            clearInterval(moveUpInterval);
+            clearInterval(moveDownInterval);
+
+            // Eliminar todos los objetivos y nubes restantes
+            gameArea.querySelectorAll('.target').forEach(objetivo => objetivo.remove());
+            gameArea.querySelectorAll('.cloud').forEach(nube => nube.remove());
+             // Eliminar todos los láseres restantes
+            lasers.forEach(laser => laser.remove());
+            lasers = []; // Vaciar el array de láseres
+        }
+
+        // Función para crear un láser
+        function crearLaser() {
+            if (!juegoActivo) return;
+             console.log('Creando láser...'); // Log de depuración
+            const laser = document.createElement('div');
+            laser.classList.add('laser');
+            // Posición del láser relativa al helicóptero dentro del área de juego
+            const helicopteroRect = helicoptero.getBoundingClientRect();
+            const gameAreaRect = gameArea.getBoundingClientRect();
+            laser.style.top = (helicopteroRect.top - gameAreaRect.top) + 23 + 'px'; // Ajustar top relativo al gameArea
+            laser.style.left = (helicopteroRect.left - gameAreaRect.left) + helicoptero.offsetWidth + 'px'; // Posicionar justo después del helicóptero
+            gameArea.appendChild(laser); // Añadir al área de juego
+            lasers.push(laser);
+            moverLaser(laser);
+        }
+
+        // Función para mover un láser
+        function moverLaser(laser) {
+             if (!juegoActivo || !laser.parentElement) { // Verificar si el láser todavía está en el DOM
+                 return;
+             }
+             // Obtener la posición inicial del láser relativa al gameArea
+            let laserX = parseInt(laser.style.left);
+            const intervalo = setInterval(() => {
+                 // Verificar si el juego sigue activo en cada paso del intervalo
+                if (!juegoActivo || !laser.parentElement) { // Verificar si el láser todavía está en el DOM
+                    clearInterval(intervalo);
+                    return;
+                }
+
+                laserX += 10; // Velocidad del láser
+                laser.style.left = laserX + 'px';
+
+                 // Verificar si el láser sale del área de juego (derecha)
+                const gameAreaRect = gameArea.getBoundingClientRect();
+                if (laserX > gameAreaRect.width) {
+                    clearInterval(intervalo);
+                    laser.remove();
+                    // Encontrar y eliminar el láser del array
+                    const laserIndex = lasers.indexOf(laser);
+                    if (laserIndex > -1) {
+                        lasers.splice(laserIndex, 1);
+                    }
+                } else {
+                    // *** VERIFICAR COLISIÓN CON OBJETIVOS AQUÍ ***
+                    verificarColisionLaser(laser);
+                }
+            }, 20);
+        }
+
+        // Función para verificar colisión entre láser y objetivos
+        function verificarColisionLaser(laser) {
+            // Solo verificar si el láser todavía está en el DOM
+             if (!laser.parentElement) return;
+
+            const laserRect = laser.getBoundingClientRect();
+            // Iterar sobre los objetivos dentro del área de juego
+            gameArea.querySelectorAll('.target').forEach(objetivo => {
+                // Solo verificar si el objetivo todavía está en el DOM
+                if (!objetivo.parentElement) return;
+
+                const objetivoRect = objetivo.getBoundingClientRect();
+                if (verificarColision(laser, objetivo)) {
+                    console.log('Colisión láser-objetivo detectada. Sumando punto.'); // Log de depuración
+                    // Colisión detectada: eliminar láser y objetivo
+                    laser.remove();
+                    objetivo.remove();
+
+                    // Encontrar y eliminar el láser del array
+                    const laserIndex = lasers.indexOf(laser);
+                    if (laserIndex > -1) {
+                        lasers.splice(laserIndex, 1);
+                    }
+
+                    sonidos.explosion.play();
+                    puntuacion++;
+                    objetivosEliminados++;
+                    puntuacionElem.textContent = 'Puntuación: ' + puntuacion;
+                    if (objetivosEliminados % 10 === 0) {
+                        velocidadObjetivos += 1;
+                    }
+
+                    // No es necesario detener el intervalo del objetivo aquí,
+                    // ya que el objetivo fue removido y su intervalo se detendrá
+                    // en la próxima iteración o cuando salga de pantalla.
+                }
+            });
+        }
+
+
+        // --- Lógica para movimiento continuo al mantener presionado ---
+
+        // Función para detener el movimiento hacia arriba
+        function stopMoveUp() {
+            clearInterval(moveUpInterval);
+            moveUpInterval = null;
+             console.log('Deteniendo movimiento hacia arriba.'); // Log de depuración
+        }
+
+        // Función para detener el movimiento hacia abajo
+        function stopMoveDown() {
+            clearInterval(moveDownInterval);
+            moveDownInterval = null;
+             console.log('Deteniendo movimiento hacia abajo.'); // Log de depuración
+        }
+
+        // Eventos para el botón "Arriba"
+        arribaBtn.addEventListener('mousedown', () => {
+            if (!juegoActivo || moveUpInterval !== null) return;
+             console.log('Botón Arriba presionado.'); // Log de depuración
+            moverHelicopteroArriba(); // Mover una vez inmediatamente al presionar
+            moveUpInterval = setInterval(moverHelicopteroArriba, 100); // Mover continuamente cada 100ms
+        });
+        arribaBtn.addEventListener('mouseup', stopMoveUp);
+        arribaBtn.addEventListener('mouseleave', stopMoveUp); // Detener si el mouse sale del botón
+
+        arribaBtn.addEventListener('touchstart', (event) => {
+            event.preventDefault(); // Previene el comportamiento por defecto del touch
+            if (!juegoActivo || moveUpInterval !== null) return;
+             console.log('Botón Arriba tocado.'); // Log de depuración
+            moverHelicopteroArriba(); // Mover una vez inmediatamente al tocar
+            moveUpInterval = setInterval(moverHelicopteroArriba, 100); // Mover continuamente
+        });
+        arribaBtn.addEventListener('touchend', stopMoveUp);
+        arribaBtn.addEventListener('touchcancel', stopMoveUp); // Detener si el touch se cancela
+
+        // Eventos para el botón "Abajo"
+        abajoBtn.addEventListener('mousedown', () => {
+            if (!juegoActivo || moveDownInterval !== null) return;
+             console.log('Botón Abajo presionado.'); // Log de depuración
+            moverHelicopteroAbajo(); // Mover una vez inmediatamente al presionar
+            moveDownInterval = setInterval(moverHelicopteroAbajo, 100); // Mover continuamente cada 100ms
+        });
+        abajoBtn.addEventListener('mouseup', stopMoveDown);
+        abajoBtn.addEventListener('mouseleave', stopMoveDown); // Detener si el mouse sale del botón
+
+        abajoBtn.addEventListener('touchstart', (event) => {
+            event.preventDefault(); // Previene el comportamiento por defecto del touch
+            if (!juegoActivo || moveDownInterval !== null) return;
+             console.log('Botón Abajo tocado.'); // Log de depuración
+            moverHelicopteroAbajo(); // Mover una vez inmediatamente al tocar
+            moveDownInterval = setInterval(moverHelicopteroAbajo, 100); // Mover continuamente
+        });
+        abajoBtn.addEventListener('touchend', stopMoveDown);
+        abajoBtn.addEventListener('touchcancel', stopMoveDown); // Detener si el touch se cancela
+
+        // El botón disparar sigue con el comportamiento de un solo clic/toque
+        dispararBtn.addEventListener('click', dispararHelicoptero);
+        dispararBtn.addEventListener('touchstart', (event) => {
+             event.preventDefault(); // Previene el comportamiento por defecto del touch
+             console.log('Botón Disparar tocado.'); // Log de depuración
+             dispararHelicoptero();
+        });
+
+
+        // Movimiento con teclado (mantener presionado ya funciona por defecto del SO)
+        document.addEventListener('keydown', (event) => {
+            if (!juegoActivo) return;
+            const gameAreaRect = gameArea.getBoundingClientRect();
+            const altoGameArea = gameAreaRect.height;
+            const altoHelicoptero = helicoptero.offsetHeight;
+
+            switch (event.key) {
+                case 'ArrowUp':
+                    console.log('Tecla Arriba presionada.'); // Log de depuración
+                    // La lógica de movimiento continuo con teclado es manejada por el sistema operativo
+                    // al mantener la tecla presionada, no necesitamos setInterval aquí.
+                    moverHelicopteroArriba();
+                    break;
+                case ' ': // Barra espaciadora
+                    console.log('Barra espaciadora presionada.'); // Log de depuración
+                    // Prevenir el scroll de la página al usar la barra espaciadora
+                    event.preventDefault();
+                    dispararHelicoptero();
+                    break;
+                case 'ArrowDown':
+                    console.log('Tecla Abajo presionada.'); // Log de depuración
+                    // La lógica de movimiento continuo con teclado es manejada por el sistema operativo
+                    moverHelicopteroAbajo();
+                    break;
+            }
+        });
+
+         // Prevenir el scroll de la página al usar las teclas de flecha
+        document.addEventListener('keydown', (event) => {
+            if (['ArrowUp', 'ArrowDown', ' '].includes(event.key) && juegoActivo) {
+                event.preventDefault();
+            }
+        });
+
+
+        // Ajustar la posición del helicóptero y otros elementos al redimensionar la ventana
+        window.addEventListener('resize', () => {
+            if (juegoActivo) {
+                console.log('Ventana redimensionada.'); // Log de depuración
+                const gameAreaRect = gameArea.getBoundingClientRect();
+                const altoGameArea = gameAreaRect.height;
+                const altoHelicoptero = helicoptero.offsetHeight;
+
+                // Asegurar que el helicóptero se mantenga dentro de los límites
+                if (helicopteroY > altoGameArea - altoHelicoptero) {
+                    helicopteroY = altoGameArea - altoHelicoptero;
+                }
+                 if (helicopteroY < 0) {
+                    helicopteroY = 0;
+                }
+                helicoptero.style.top = helicopteroY + 'px';
+
+                // Nota: La posición de los objetivos, nubes y láseres ya creados
+                // no se reajustará automáticamente al redimensionar.
+                // Si esto es un problema, se necesitaría lógica adicional aquí
+                // para iterar sobre ellos y actualizar sus posiciones relativas.
+                // Sin embargo, dado que se mueven constantemente y se eliminan,
+                // el efecto puede ser aceptable.
+            }
+        });
+
+        // Event listener para el botón Jugar
+        jugarBtn.addEventListener('click', () => {
+            console.log('Botón Jugar clickeado. Iniciando juego...'); // Log de depuración
+            inicio.style.display = 'none';
+            juego.style.display = 'flex'; // Usamos flex para mostrar el contenedor del juego y botones
+            puntuacion = 0;
+            objetivosEliminados = 0;
+            velocidadObjetivos = 2;
+            puntuacionElem.textContent = 'Puntuación: 0';
+            // Eliminar objetivos y nubes existentes del área de juego
+            gameArea.querySelectorAll('.target').forEach(objetivo => objetivo.remove());
+            gameArea.querySelectorAll('.cloud').forEach(nube => nube.remove());
+            // Eliminar láseres existentes
+             lasers.forEach(laser => laser.remove());
+             lasers = []; // Vaciar el array de láseres
+
+            juegoActivo = true;
+             console.log('juegoActivo = true'); // Log de depuración
+
+
+            // Obtener la altura del área de juego después de que se muestre
+            const gameAreaRect = gameArea.getBoundingClientRect();
+            const altoGameArea = gameAreaRect.height;
+
+            // Posicionar el helicóptero en el centro vertical del área de juego
+            helicopteroY = altoGameArea / 2 - helicoptero.offsetHeight / 2;
+            helicoptero.style.top = helicopteroY + 'px';
+            helicoptero.style.left = '10%'; // Mantener la posición horizontal relativa
+            console.log(`Posición inicial del helicóptero: ${helicoptero.style.top}, ${helicoptero.style.left}`); // Log de depuración
+
+
+            // Iniciar la creación de objetivos y nubes
+            objetivoInterval = setInterval(crearObjetivo, 2000);
+            nubeInterval = setInterval(crearNube, 3000);
+            console.log('Intervalos de creación iniciados.'); // Log de depuración
+        });
+
+        // Event listener para el botón Reiniciar
+        reiniciarBtn.addEventListener('click', () => {
+             console.log('Botón Reiniciar clickeado. Reiniciando juego...'); // Log de depuración
+            finJuego.style.display = 'none';
+            juego.style.display = 'flex'; // Usamos flex para mostrar el contenedor del juego y botones
+            puntuacion = 0;
+            objetivosEliminados = 0;
+            velocidadObjetivos = 2;
+            puntuacionElem.textContent = 'Puntuación: 0';
+             // Eliminar objetivos y nubes existentes del área de juego
+            gameArea.querySelectorAll('.target').forEach(objetivo => objetivo.remove());
+            gameArea.querySelectorAll('.cloud').forEach(nube => nube.remove());
+             // Eliminar láseres existentes
+            lasers.forEach(laser => laser.remove());
+            lasers = []; // Vaciar el array de láseres
+
+            juegoActivo = true;
+             console.log('juegoActivo = true'); // Log de depuración
+
+
+             // Obtener la altura del área de juego después de que se muestre
+            const gameAreaRect = gameArea.getBoundingClientRect();
+            const altoGameArea = gameAreaRect.height;
+
+            // Posicionar el helicóptero en el centro vertical del área de juego
+            helicopteroY = altoGameArea / 2 - helicoptero.offsetHeight / 2;
+            helicoptero.style.top = helicopteroY + 'px';
+            helicoptero.style.left = '10%'; // Mantener la posición horizontal relativa
+             console.log(`Posición inicial del helicóptero: ${helicoptero.style.top}, ${helicoptero.style.left}`); // Log de depuración
+
+
+            // Reiniciar la creación de objetivos y nubes
+            objetivoInterval = setInterval(crearObjetivo, 2000);
+            nubeInterval = setInterval(crearNube, 3000);
+             console.log('Intervalos de creación reiniciados.'); // Log de depuración
+        });
+    </script>
 </body>
 </html>
