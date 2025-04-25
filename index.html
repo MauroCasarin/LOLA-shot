@@ -1,1232 +1,746 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <title>LOLA shot</title>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego T Lola</title>
     <style>
-        /* Estilos CSS integrados */
         body {
+            background: linear-gradient(to top, LightGray, SteelBlue); /* Gradiente de fondo del cuerpo */
+            display: flex;
+            flex-direction: column; /* Organizar elementos verticalmente */
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
             margin: 0;
-            overflow: hidden;
-            background: linear-gradient(to top, LightGray, SteelBlue);
-            /* Usamos flexbox para organizar el contenido principal */
-            display: flex;
-            flex-direction: column;
-            height: 100vh; /* Ocupa toda la altura de la ventana */
-            justify-content: center; /* Centra verticalmente el contenido del body */
-            align-items: center; /* Centra horizontalmente el contenido del body */
-            padding: 10px; /* Añade un pequeño padding al body para que el juego no toque los bordes */
-            box-sizing: border-box; /* Incluye el padding en el tamaño total del body */
+            font-family: sans-serif;
+            /* Prevenir zoom en móviles */
+            touch-action: manipulation;
+            padding: 10px; /* Añadir algo de relleno alrededor del juego */
+            box-sizing: border-box; /* Incluir relleno en el ancho y alto total del elemento */
+            overflow: hidden; /* Prevenir barras de desplazamiento */
         }
 
-        #inicio {
-            /* Ya está centrado con transform, pero aseguramos que no interfiera */
+        canvas {
+            border: 2px solid #333;
+            background-color: #fff; /* Color de respaldo si la imagen no carga */
+            display: block;
+            margin: 10px auto; /* Centrar el canvas y añadir margen */
+            max-width: 90%; /* Limitar el ancho máximo relativo al viewport */
+            max-height: 85vh; /* Aumentar la altura máxima relativa a la altura del viewport */
+            width: auto; /* Permitir que el ancho se ajuste */
+            height: auto; /* Permitir que la altura se ajuste */
+            /* Inicialmente oculto hasta que se presione COMENZAR */
+            display: none;
+        }
+
+        #score {
+            position: absolute;
+            top: 20px;
+            /* Centrar horizontalmente */
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 20px;
+            font-weight: bold;
+            z-index: 10; /* Asegurar que la puntuación esté por encima del canvas */
+            /* Inicialmente oculto */
+            display: none;
+        }
+
+        #gameOver {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
+            font-size: 30px;
+            font-weight: bold;
+            color: red;
+            display: none; /* Oculto por defecto */
             text-align: center;
-            z-index: 20; /* Aseguramos que esté por encima del juego */
-            /* Aseguramos que no sea más ancho que la pantalla */
-            max-width: 95%;
-            padding: 10px;
-            background-color: rgba(255, 255, 255, 0.9);
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            z-index: 10; /* Asegurar que el texto de fin de juego esté por encima del canvas */
         }
 
-        #inicio h1 {
-            font-size: 2em; /* Tamaño de fuente relativo */
-            margin-bottom: 20px;
-        }
-
-        #inicio button {
-             padding: 10px 20px;
-             font-size: 1.2em;
-             cursor: pointer;
-        }
-
-
-        #juego {
-            position: relative;
-            width: 100%; /* Ocupa todo el ancho disponible dentro del body centrado */
-            max-width: 800px; /* Limita el ancho máximo en pantallas grandes */
-            height: 100%; /* Ocupa la altura disponible dentro del body flex */
-            max-height: 90vh; /* Limita la altura máxima para dejar espacio a los botones */
-            display: flex; /* Usamos flexbox para separar el área de juego y los botones */
-            flex-direction: column;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5); /* Agrega una sombra para destacarlo */
-            border-radius: 10px; /* Bordes redondeados */
-            overflow: hidden; /* Asegura que los elementos internos no se salgan de los bordes redondeados */
-        }
-
-        #game-area {
-            position: relative; /* Los elementos dentro se posicionarán respecto a esta área */
-            flex-grow: 1; /* El área de juego ocupa la mayor parte del espacio */
-            overflow: hidden; /* Oculta los elementos que salgan del área */
-            background-color: rgba(255, 255, 255, 0.3); /* Fondo semi-transparente para el área de juego */
-
-            /* Fondo de imagen animado */
-            background-image: url('https://raw.githubusercontent.com/MauroCasarin/LOLA-shot/refs/heads/main/nubesfondo.jpg');
-            background-repeat: repeat-x; /* Repetir horizontalmente */
-            background-position: 0 0; /* Posición inicial */
-            /* Animación de desplazamiento - Ajustada a 15s para mayor velocidad */
-            animation: scrollBackground 15s linear infinite;
-            /* Aseguramos que el fondo cubra el área */
-            background-size: cover; /* O 'contain' dependiendo del efecto deseado */
-        }
-
-        /* Definición de la animación del fondo */
-        @keyframes scrollBackground {
-            from {
-                background-position: 0 0;
-            }
-            to {
-                background-position: 100% 0; /* Desplazar al 100% del ancho */
-            }
-        }
-
-
-        #helicoptero {
+        #restartButton {
+            display: none; /* Oculto por defecto */
             position: absolute;
-            /* Usamos unidades relativas o una combinación */
-            width: 8vw; /* Ancho relativo al viewport width */
-            height: auto; /* Mantiene la proporción */
-            max-width: 60px; /* Tamaño máximo para pantallas grandes */
-            min-width: 40px; /* Tamaño mínimo para pantallas pequeñas */
-            /* Posicionamiento inicial dentro del área de juego */
-            top: 50%;
-            left: 10%;
-            transform: translateY(-50%);
-            z-index: 5; /* Asegura que el helicóptero esté por encima del fondo y nubes */
-        }
-
-        #botones {
-            display: flex;
-            justify-content: space-between; /* Distribuye el espacio entre los grupos de botones */
-            align-items: center; /* Centra los botones verticalmente */
-            padding: 10px; /* Espacio alrededor de los botones */
-            background-color: rgba(0, 0, 0, 0.2); /* Fondo semi-transparente para la barra de botones */
-            flex-shrink: 0; /* Evita que los botones se encojan */
-        }
-
-        #botones .left-buttons {
-            display: flex;
-            flex-direction: column; /* Botones arriba/abajo apilados verticalmente */
-            align-items: flex-start; /* Alinea los botones a la izquierda dentro de su contenedor */
-        }
-
-        #botones .right-button {
-             display: flex;
-             align-items: center; /* Centra verticalmente el botón disparar */
-        }
-
-
-        #botones button {
-            padding: 5px; /* Ajusta el padding de los botones */
-            margin: 5px; /* Espacio entre botones */
-            font-size: 1rem; /* Tamaño de fuente legible */
-            border: none;
-            background-color: transparent; /* Fondo transparente para los botones */
+            top: calc(50% + 40px);
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 8px 16px;
+            font-size: 18px;
             cursor: pointer;
+            z-index: 10; /* Asegurar que el botón esté por encima del canvas */
         }
 
-        #botones button img {
-            /* Usamos unidades relativas o una combinación para las imágenes de los botones */
-            width: 10vw; /* Ancho relativo al viewport width */
-            height: auto; /* Mantiene la proporción */
-            max-width: 60px; /* Tamaño máximo */
-            min-width: 40px; /* Tamaño mínimo */
+        #jumpButton {
+            display: none; /* Oculto por defecto, se mostrará en pantallas más pequeñas */
+            margin-top: 110px; /* Espacio entre el canvas y el botón */
+            padding: 15px 30px;
+            font-size: 24px;
+            cursor: pointer;
+            border: none;
+            border-radius: 15px;
+            background-color: #18943b;
+            color: white;
+            box-shadow: 0px 10px 5px rgba(0, 0, 0, 0.3);
+            /* Inicialmente oculto */
+            display: none;
         }
 
-        .target {
-            position: absolute;
-            /* Usamos unidades relativas o una combinación */
-            width: 7vw; /* Ancho relativo al viewport width */
-            height: auto; /* Mantiene la proporción */
-            max-width: 50px; /* Tamaño máximo */
-            min-width: 30px; /* Tamaño mínimo */
-            z-index: 5; /* Asegura que los objetivos estén por encima del fondo y nubes */
+        #startButtonContainer {
+            /* Contenedor para la imagen del botón de inicio */
+            display: flex; /* Usar flexbox para centrar la imagen si es necesario */
+            justify-content: center;
+            align-items: center;
+            cursor: pointer; /* Cambiar cursor para indicar que es clickeable */
+            margin-bottom: 20px; /* Espacio debajo del botón si hay otros elementos */
+            /* Inicialmente visible, se ocultará al iniciar el juego */
+            display: block;
         }
 
-         .target.large {
-            /* Estilo para objetivos más grandes */
-            width: 10vw; /* Aumenta el ancho */
-            max-width: 70px; /* Aumenta el tamaño máximo */
-            min-width: 50px; /* Aumenta el tamaño mínimo */
-         }
-
-         .target.small {
-             /* Estilo para objetivos más pequeños */
-             width: 5vw; /* Disminuye el ancho */
-             max-width: 35px; /* Disminuye el tamaño máximo */
-             min-width: 20px; /* Disminuye el tamaño mínimo */
-         }
-
-         .target.red {
-             /* Estilo para objetivos rojos */
-             filter: hue-rotate(90deg) saturate(3); /* Aplica un filtro para cambiar el color a rojo */
-         }
-
-
-        .cloud {
-            position: absolute;
-             /* Usamos unidades relativas o una combinación */
-            width: 15vw; /* Ancho relativo al viewport width */
-            height: auto; /* Mantiene la proporción */
-            max-width: 150px; /* Tamaño máximo */
-            min-width: 80px; /* Tamaño mínimo */
-            z-index: 1; /* Aseguramos que las nubes estén detrás del helicóptero y objetivos */
+        #startButtonImage {
+            /* Estilos para la imagen del botón */
+            max-width: 100%; /* Asegurar que la imagen no se desborde */
+            height: auto; /* Mantener la relación de aspecto */
+            display: block; /* Eliminar espacio extra debajo de la imagen */
+             /* Opcional: ajustar tamaño máximo si la imagen es muy grande */
+            max-width: 300px; /* Ejemplo: limitar ancho máximo de la imagen */
         }
 
-        .lupulo {
-             position: absolute;
-            /* Usamos unidades relativas o una combinación */
-            width: 6vw; /* Ancho relativo al viewport width */
-            height: auto; /* Mantiene la proporción */
-            max-width: 45px; /* Tamaño máximo */
-            min-width: 25px; /* Tamaño mínimo */
-             z-index: 5; /* Asegura que el lúpulo esté por encima del fondo y nubes */
-        }
 
-         .bomba {
-             position: absolute;
-             width: 15px; /* Ancho de la bomba */
-             height: 15px; /* Altura de la bomba */
-             background-color: black; /* Color de la bomba */
-             border-radius: 50%; /* Forma redonda */
-             z-index: 6; /* Asegura que la bomba esté por encima de los objetivos */
-         }
-
-
-        #puntuacion {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            font-size: 1.5rem; /* Tamaño de fuente legible */
-            color: black;
-            z-index: 10; /* Aseguramos que la puntuación esté encima */
-        }
-
-        #fin-juego {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            z-index: 30; /* Aseguramos que esté por encima de todo */
-            background-color: rgba(255, 255, 255, 0.9); /* Fondo semi-transparente */
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-             /* Aseguramos que no sea más ancho que la pantalla */
-            max-width: 95%;
-        }
-
-         #fin-juego h1 {
-             font-size: 2em; /* Tamaño de fuente relativo */
-             margin-bottom: 10px;
-         }
-
-         #fin-juego p {
-             font-size: 1.2em; /* Tamaño de fuente relativo */
-             margin-bottom: 20px;
-         }
-
-         #fin-juego button {
-             padding: 10px 20px;
-             font-size: 1.2em;
-             cursor: pointer;
-         }
-
-
-        .laser {
-            position: absolute;
-            /* El ancho del láser ahora es dinámico, la altura puede ser fija */
-            height: 4px;
-            background-color: green;
-            z-index: 6; /* Asegura que los láseres estén por encima del helicóptero y objetivos */
-        }
-
-         .spark {
-             position: absolute;
-             width: 5px;
-             height: 5px;
-             background-color: yellow; /* Color de la chispa */
-             border-radius: 50%;
-             z-index: 7; /* Asegura que las chispas estén por encima de los láseres y objetivos */
-             pointer-events: none; /* Permite hacer clic a través de las chispas */
-             opacity: 1;
-             animation: fadeOut 0.3s ease-out forwards; /* Animación de desvanecimiento */
-         }
-
-         @keyframes fadeOut {
-             to {
-                 opacity: 0;
-             }
-         }
-
-
-        /* Media query para ajustar estilos en pantallas más pequeñas si es necesario */
-        @media (max-width: 600px) {
-            #juego {
-                max-width: 100%; /* En pantallas pequeñas, ocupa todo el ancho */
-                max-height: 85vh; /* Deja un poco más de espacio para los botones en móvil */
+        /* Media query para mostrar el botón de salto en pantallas más pequeñas */
+        @media (max-width: 768px) {
+            #jumpButton {
+                /* display: block; */ /* Se manejará en JS al iniciar el juego */
             }
-
-            #botones button img {
-                width: 15vw; /* Haz los botones un poco más grandes en móvil */
-                max-width: 70px; /* Ajusta el tamaño máximo */
-            }
-
-             #botones button {
-                 padding: 8px; /* Ajusta el padding */
-                 margin: 3px; /* Ajusta el margen */
-             }
-
-             #puntuacion {
-                 font-size: 1.2rem; /* Ajusta el tamaño de la fuente de la puntuación */
-             }
         }
-
     </style>
 </head>
 <body>
-    <div id="inicio">
-        <h1>LOLA shot</h1>
-        <button id="jugar">Jugar</button>
+
+    <div id="startButtonContainer">
+        <img id="startButtonImage" src="https://raw.githubusercontent.com/MauroCasarin/LOLA-shot/ab05cd7f92d80a3d6a82cb9ee0695ce3e3716cb9/BotStart.png" alt="Botón COMENZAR">
     </div>
 
-    <div id="juego" style="display: none;">
-        <div id="game-area">
-            <div id="puntuacion">Puntuación: 0</div>
-            <img id="helicoptero" src="https://raw.githubusercontent.com/MauroCasarin/Lola-Game/refs/heads/main/lola.svg" alt="Helicóptero">
-            </div>
-        <div id="botones">
-            <div class="left-buttons">
-                 <button id="arriba">
-                    <img src="https://raw.githubusercontent.com/MauroCasarin/LOLA-shot/refs/heads/main/BOTarriba.png" alt="Arriba">
-                </button>
-                <button id="abajo">
-                    <img src="https://raw.githubusercontent.com/MauroCasarin/LOLA-shot/refs/heads/main/BOTAbajo.png" alt="Abajo">
-                </button>
-            </div>
-             <div class="right-button">
-                <button id="disparar">
-                    <img src="https://raw.githubusercontent.com/MauroCasarin/LOLA-shot/refs/heads/main/BOTdisparo.png" alt="Disparar">
-                </button>
-            </div>
-        </div>
-    </div>
+    <canvas id="gameCanvas"></canvas>
+    <div id="score">Puntuación: 0</div>
+    <div id="gameOver">Fin del Juego</div>
+    <button id="restartButton">Reiniciar</button>
+    <button id="jumpButton">Saltar</button>
 
-    <div id="fin-juego" style="display: none;">
-        <h1>¡Fin del juego!</h1>
-        <p id="puntuacion-final"></p>
-        <button id="reiniciar">Reiniciar</button>
-    </div>
+    <audio id="jumpSound" src="http://www.marcelomagni.com.ar/sound/salto.mp3"></audio>
+    <audio id="backgroundMusic" src="http://www.marcelomagni.com.ar/sound/LolaGameMusic.mp3" loop></audio>
+    <audio id="gameOverSound" src="http://www.marcelomagni.com.ar/sound/game-over.mp3"></audio>
 
     <script>
-        // Código JavaScript integrado
-        const inicio = document.getElementById('inicio');
-        const juego = document.getElementById('juego');
-        const finJuego = document.getElementById('fin-juego');
-        const jugarBtn = document.getElementById('jugar');
-        const reiniciarBtn = document.getElementById('reiniciar');
-        const helicoptero = document.getElementById('helicoptero');
-        const puntuacionElem = document.getElementById('puntuacion');
-        const puntuacionFinal = document.getElementById('puntuacion-final');
-        const arribaBtn = document.getElementById('arriba');
-        const dispararBtn = document.getElementById('disparar');
-        const abajoBtn = document.getElementById('abajo');
-        const gameArea = document.getElementById('game-area'); // Referencia a la nueva área de juego
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('score');
+        const gameOverDisplay = document.getElementById('gameOver');
+        const restartButton = document.getElementById('restartButton');
+        const jumpButton = document.getElementById('jumpButton'); // Obtener el botón de salto
+        const startButtonContainer = document.getElementById('startButtonContainer'); // Obtener el contenedor de la imagen del botón de comenzar
 
 
-        let puntuacion = 0;
-        let helicopteroY = 0;
-        let velocidadObjetivos = 2; // Velocidad inicial de los objetivos
-        const velocidadObjetivosInicial = 2; // Guardamos la velocidad inicial
-        let objetivosEliminados = 0;
-        let juegoActivo = false;
-        let lasers = [];
-        let bombas = []; // Array para almacenar las bombas
+        // Obtener elementos de audio
+        const jumpSound = document.getElementById('jumpSound');
+        const backgroundMusic = document.getElementById('backgroundMusic');
+        const gameOverSound = document.getElementById('gameOverSound');
 
-        // Variables para el movimiento continuo
-        let moveUpInterval = null;
-        let moveDownInterval = null;
+        // --- Dimensiones Originales del Juego (para referencia de escalado) ---
+        // Aumentar la altura original para hacer el canvas más alto
+        const originalCanvasWidth = 600;
+        const originalCanvasHeight = 400; // Canvas hecho más alto (ajustado a 400)
+        const aspectRatio = originalCanvasWidth / originalCanvasHeight;
 
-        // Variables para almacenar los intervalos de creación
-        let objetivoInterval;
-        let nubeInterval;
-        let lupuloInterval; // Intervalo para crear lúpulos
-
-        // Variables para el bonus de lúpulo
-        let shotPower = 0; // Nivel del bonus de disparo (0: 1 disparo, 1: 2 disparos, >=2: 3 disparos, >=3: + bomba)
-        const laserBaseWidth = 10; // Ancho base del láser
-        const laserWidthIncrement = 5; // Incremento de ancho por cada lúpulo
-        const laserSpeed = 10; // Velocidad base del láser
-        const objetivoSpeedIncrementPorDiezPuntos = 0.5; // Incremento de velocidad de los objetivos cada 10 puntos
-        const objetivoSpeedIncrementPorBonus = 1.0; // Incremento de velocidad de los objetivos por cada lúpulo
-        let lastScoreIncrease = 0; // Para rastrear el último múltiplo de 10 que incrementó la velocidad
-        let lastLupuloScore = 0; // Para rastrear la puntuación en la que apareció el último lúpulo
-
-
-        const objetivosSrc = [
-            "https://raw.githubusercontent.com/MauroCasarin/Lola-Game/e17ef4a544f71b08c4cf0418af133e7834ac7157/brahma.png",
-            "https://raw.githubusercontent.com/MauroCasarin/Lola-Game/refs/heads/main/quilmes.png",
-            "https://raw.githubusercontent.com/MauroCasarin/Lola-Game/refs/heads/main/Bud.jpg",
-            "https://raw.githubusercontent.com/MauroCasarin/Lola-Game/refs/heads/main/stela.png"
-
-        ];
-
-        const nubesSrc = [
-            // Eliminada la URL de la nube solicitada
-            "https://raw.githubusercontent.com/MauroCasarin/Lola-Game/9af808195ce2abfb240dc4f890d329acf0f09e55/cloud2.svg"
-        ];
-
-        const lupuloSrc = "https://raw.githubusercontent.com/MauroCasarin/LOLA-shot/c6f25cbef02cd861823d66b6854908825cd9cf06/lupulo.svg";
-
-
-        const sonidos = {
-            disparo: new Audio("http://www.marcelomagni.com.ar/sound/disparo.mp3"),
-            explosion: new Audio("http://www.marcelomagni.com.ar/sound/explo.mp3"),
-            caida: new Audio("http://www.marcelomagni.com.ar/sound/caenobj.mp3"),
-            gameOver: new Audio("http://www.marcelomagni.com.ar/sound/game-over.mp3"),
-             bonus: new Audio("http://www.marcelomagni.com.ar/sound/bonus.mp3"), // Sonido para el bonus
-             bomba: new Audio("http://www.marcelomagni.com.ar/sound/bomba.mp3") // Sonido para la bomba
+        // --- Variables del Juego (serán escaladas) ---
+        let tRex = {
+            x: 0, // Se establecerá al redimensionar
+            y: 0, // Se establecerá al redimensionar
+            originalWidth: 70, // Ancho base para escalado
+            originalHeight: 70, // Altura base para escalado
+            width: 0, // Se establecerá al redimensionar
+            height: 0, // Se establecerá al redimensionar
+            dy: 0,
+            gravity: 0, // Se establecerá al redimensionar
+            jumpPower: 0, // Se establecerá al redimensionar
+            isJumping: false,
+            rotation: 0, // Ángulo de rotación actual en radianes
+            rotationSpeed: -Math.PI / 20 // Velocidad de rotación (aprox 90 grados / duración del salto)
         };
 
-        // --- Funciones de movimiento del helicóptero ---
-        function moverHelicopteroArriba() {
-            if (!juegoActivo) return;
-            const gameAreaRect = gameArea.getBoundingClientRect();
-            const altoGameArea = gameAreaRect.height;
-            const altoHelicoptero = helicoptero.offsetHeight;
+        let obstacles = [];
+        let clouds = []; // Array para almacenar objetos de nubes
+        let gameSpeed = 0; // Se establecerá al redimensionar
+        const initialGameSpeed = 5; // Velocidad inicial
+        const speedIncreasePerScore = 0.5; // Cuánto aumenta la velocidad cada 10 puntos
+        let score = 0;
+        let gameRunning = false; // El juego no corre al inicio
 
-            helicopteroY -= 20;
-            // Limitar el movimiento dentro del área de juego
-            if (helicopteroY < 0) helicopteroY = 0;
-            helicoptero.style.top = helicopteroY + 'px';
-        }
+        // --- Variables de Imagen ---
+        // URLs de las imágenes
+        const tRexImageUrl = 'https://raw.githubusercontent.com/MauroCasarin/Lola-Game/refs/heads/main/lola.svg';
+        const obstacleImageUrls = [
+            'https://raw.githubusercontent.com/MauroCasarin/Lola-Game/refs/heads/main/brahma.svg',
+            'https://raw.githubusercontent.com/MauroCasarin/Lola-Game/refs/heads/main/quilmes.svg',
+            'https://raw.githubusercontent.com/MauroCasarin/Lola-Game/refs/heads/main/stela.svg',
+            'https://raw.githubusercontent.com/MauroCasarin/Lola-Game/refs/heads/main/Bud.svg'
+        ];
+        const cloudImageUrls = [
+            'https://raw.githubusercontent.com/MauroCasarin/Lola-Game/9af808195ce2abfb240dc4f890d329acf0f09e55/cloud.svg',
+            'https://raw.githubusercontent.com/MauroCasarin/Lola-Game/9af808195ce2abfb240dc4f890d329acf0f09e55/cloud2.svg'
+        ];
 
-        function moverHelicopteroAbajo() {
-            if (!juegoActivo) return;
-            const gameAreaRect = gameArea.getBoundingClientRect();
-            const altoGameArea = gameAreaRect.height;
-            const altoHelicoptero = helicoptero.offsetHeight;
+        // ** AQUÍ PUEDES CAMBIAR LA IMAGEN DE FONDO **
+        const backgroundImageUrl = 'https://raw.githubusercontent.com/MauroCasarin/Lola-Game/refs/heads/main/imagenfondo.jpg'; // URL de tu imagen de fondo
+        const backgroundImage = new Image();
+        backgroundImage.src = backgroundImageUrl;
 
-            helicopteroY += 20;
-             // Limitar el movimiento dentro del área de juego
-            if (helicopteroY > altoGameArea - altoHelicoptero) helicopteroY = altoGameArea - altoHelicoptero;
-            helicoptero.style.top = helicopteroY + 'px';
-        }
-         // --- Fin de funciones de movimiento del helicóptero ---
-
-
-        // --- Funciones de creación y movimiento de elementos del juego ---
-
-        // Función para crear chispas en una posición
-        function crearChispas(x, y) {
-             if (!juegoActivo) return;
-             for (let i = 0; i < 5; i++) { // Crear 5 chispas
-                 const spark = document.createElement('div');
-                 spark.classList.add('spark');
-                 // Posición inicial de la chispa ligeramente aleatoria alrededor del punto de colisión
-                 spark.style.left = (x + (Math.random() - 0.5) * 10) + 'px';
-                 spark.style.top = (y + (Math.random() - 0.5) * 10) + 'px';
-                 gameArea.appendChild(spark);
-
-                 // Eliminar la chispa después de la animación
-                 spark.addEventListener('animationend', () => {
-                     spark.remove();
-                 });
-             }
-        }
+        // Variables para el fondo móvil
+        let backgroundX = 0; // Posición X del fondo
+        let backgroundSpeed = 1; // Velocidad de desplazamiento del fondo (ajusta según prefieras)
 
 
-        // Función para crear un objetivo
-        function crearObjetivo() {
-            if (!juegoActivo) return;
+        // Objetos de imagen
+        const tRexImage = new Image();
+        tRexImage.src = tRexImageUrl;
 
-            // Determinar cuántos objetivos crear
-            const numObjetivosACrear = shotPower >= 3 ? 5 : 1; // Crear 5 objetivos si shotPower >= 3, de lo contrario 1
+        const obstacleImages = obstacleImageUrls.map(url => {
+            const img = new Image();
+            img.src = url;
+            return img;
+        });
 
-            for (let i = 0; i < numObjetivosACrear; i++) {
-                const objetivo = document.createElement('img');
-                objetivo.src = objetivosSrc[Math.floor(Math.random() * objetivosSrc.length)];
-                objetivo.classList.add('target');
+        const cloudImages = cloudImageUrls.map(url => {
+            const img = new Image();
+            img.src = url;
+            return img;
+        });
 
-                // Ajustar tamaño y color según shotPower
-                if (shotPower >= 3) {
-                    objetivo.classList.add('small'); // Más pequeños
-                    objetivo.classList.add('red'); // Rojos
-                } else if (shotPower >= 2) {
-                    objetivo.classList.add('large'); // Más grandes
-                }
+        // Contador de imágenes cargadas
+        let imagesLoaded = 0;
+        // Número total de imágenes a cargar (1 T-Rex + 4 Obstáculos + 2 Nubes + 1 Fondo + 1 Botón de inicio)
+        const totalImages = 1 + obstacleImageUrls.length + cloudImageUrls.length + 1 + 1;
 
-
-                // Añadir temporalmente al DOM para obtener dimensiones
-                gameArea.appendChild(objetivo);
-
-                // Obtener la altura del área de juego y del objetivo
-                const gameAreaRect = gameArea.getBoundingClientRect();
-                const altoGameArea = gameAreaRect.height;
-                const anchoGameArea = gameAreaRect.width;
-                const altoObjetivo = objetivo.offsetHeight;
-                const anchoObjetivo = objetivo.offsetWidth;
-
-
-                // Posición inicial aleatoria normal (en toda la altura)
-                // Generar posición vertical aleatoria dentro del área de juego
-                let startY = Math.random() * (altoGameArea - altoObjetivo); // Aleatorio en toda la altura
-                // Posicionar inicialmente fuera del área visible a la derecha del contenedor #juego
-                const juegoRect = juego.getBoundingClientRect();
-                let startX = juegoRect.width; // Usar el ancho del contenedor #juego
-
-                // Si creamos múltiples objetivos, ajustamos un poco su posición horizontal para que no aparezcan exactamente en el mismo lugar
-                if (numObjetivosACrear > 1) {
-                     startX += i * 50; // Ajusta este valor para cambiar la separación inicial
-                }
+        // Cargar imagen del botón de inicio
+        const startButtonImage = new Image();
+        startButtonImage.src = 'https://raw.githubusercontent.com/MauroCasarin/LOLA-shot/ab05cd7f92d80a3d6a82cb9ee0695ce3e3716cb9/BotStart.png';
+        startButtonImage.onload = checkAllImagesLoaded;
+        startButtonImage.onerror = () => {
+             console.error("Error cargando imagen del botón de inicio:", startButtonImage.src);
+             checkAllImagesLoaded(); // Contar como cargada aunque haya error
+        };
 
 
-                objetivo.style.top = startY + 'px';
-                objetivo.style.left = startX + 'px';
-
-                // Almacenar la posición inicial (necesaria para el movimiento hacia Lola)
-                 objetivo.dataset.originalX = parseFloat(objetivo.style.left); // Guardar como número
-                 objetivo.dataset.originalY = parseFloat(objetivo.style.top); // Guardar como número
-
-
-                // Mover el objetivo
-                moverObjetivo(objetivo);
+        // Función para verificar si todas las imágenes se han cargado
+        function checkAllImagesLoaded() {
+            imagesLoaded++;
+            if (imagesLoaded === totalImages) {
+                // Todas las imágenes cargadas, mostrar el botón de inicio
+                showStartScreen();
             }
         }
 
-        // Función para mover un objetivo
-        function moverObjetivo(objetivo) {
-            if (!juegoActivo || !objetivo.parentElement) { // Verificar si el objetivo todavía está en el DOM
-                 return;
+        // Asignar el evento onload a cada imagen (excepto la del botón de inicio que ya se hizo)
+        tRexImage.onload = checkAllImagesLoaded;
+        backgroundImage.onload = checkAllImagesLoaded;
+
+        obstacleImages.forEach(img => {
+            img.onload = checkAllImagesLoaded;
+            img.onerror = () => { // Manejar errores de carga de obstáculos
+                console.error("Error cargando imagen de obstáculo:", img.src);
+                checkAllImagesLoaded(); // Contar como cargada (pero estará rota)
+            };
+        });
+
+        cloudImages.forEach(img => {
+            img.onload = checkAllImagesLoaded;
+            img.onerror = () => { // Manejar errores de carga de nubes
+                console.error("Error cargando imagen de nube:", img.src);
+                checkAllImagesLoaded(); // Contar como cargada (pero estará rota)
+            };
+        });
+
+        // Manejar error de carga de T-Rex y fondo
+        tRexImage.onerror = () => {
+            console.error("Error cargando imagen de T-Rex:", tRexImage.src);
+            checkAllImagesLoaded();
+        };
+        backgroundImage.onerror = () => {
+            console.error("Error cargando imagen de fondo:", backgroundImage.src);
+            checkAllImagesLoaded();
+        };
+
+
+        // --- Función para mostrar la pantalla de inicio ---
+        function showStartScreen() {
+            // Ocultar elementos del juego
+            canvas.style.display = 'none';
+            scoreDisplay.style.display = 'none';
+            gameOverDisplay.style.display = 'none';
+            restartButton.style.display = 'none';
+            jumpButton.style.display = 'none'; // Ocultar botón de salto
+
+            // Mostrar contenedor del botón de inicio
+            startButtonContainer.style.display = 'flex'; // Usar flex para centrar la imagen
+        }
+
+        // --- Función para iniciar el juego ---
+        function startGame() {
+            gameRunning = true;
+            // Ocultar contenedor del botón de inicio
+            startButtonContainer.style.display = 'none';
+
+            // Mostrar elementos del juego
+            canvas.style.display = 'block';
+            scoreDisplay.style.display = 'block';
+            // Mostrar botón de salto solo en pantallas pequeñas
+            if (window.innerWidth <= 768) {
+                 jumpButton.style.display = 'block';
             }
-            let objetivoX = parseFloat(objetivo.style.left); // Usar parseFloat para valores decimales
-            let objetivoY = parseFloat(objetivo.style.top);
-
-            const intervalo = setInterval(() => {
-                // Verificar si el juego sigue activo en cada paso del intervalo
-                if (!juegoActivo || !objetivo.parentElement) { // Verificar si el objetivo todavía está en el DOM
-                    clearInterval(intervalo);
-                    return;
-                }
-
-                // Movimiento base de derecha a izquierda
-                objetivoX -= velocidadObjetivos;
-
-                // Movimiento adicional hacia Lola si shotPower es 2 o más
-                if (shotPower >= 2) {
-                    const helicopteroRect = helicoptero.getBoundingClientRect();
-                    const gameAreaRect = gameArea.getBoundingClientRect();
-
-                    // Posición de Lola relativa al área de juego
-                    const lolaX = (helicopteroRect.left - gameAreaRect.left) + helicoptero.offsetWidth / 2;
-                    const lolaY = (helicopteroRect.top - gameAreaRect.top) + helicoptero.offsetHeight / 2;
-
-                    // Vector de dirección del objetivo a Lola
-                    const deltaX = lolaX - objetivoX;
-                    const deltaY = lolaY - objetivoY;
-
-                    // Calcular la distancia
-                    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-
-                    // Mover hacia Lola (ajusta la velocidad de acercamiento si es necesario)
-                    const velocidadAcercamiento = 0.5; // Velocidad con la que se acercan a Lola
-                    if (distance > 1) { // Evitar división por cero si están exactamente en el mismo lugar
-                        objetivoX += (deltaX / distance) * velocidadAcercamiento;
-                        objetivoY += (deltaY / distance) * velocidadAcercamiento;
-                    }
-                }
 
 
-                objetivo.style.left = objetivoX + 'px';
-                objetivo.style.top = objetivoY + 'px';
+            // Escalar el juego al iniciar
+            scaleGame();
 
-                // Verificar si el objetivo sale del área de juego (izquierda)
-                if (objetivoX < -objetivo.offsetWidth) { // Usar offsetWidth para el ancho real del objetivo
-                    clearInterval(intervalo);
-                    objetivo.remove();
+            // Establecer velocidad inicial del juego después de escalar
+            gameSpeed = initialGameSpeed * (canvas.width / originalCanvasWidth);
+
+            // Reproducir música de fondo al iniciar el juego
+            backgroundMusic.play().catch(e => {
+                console.log("La reproducción automática de audio fue bloqueada. Toca la pantalla para iniciar la música.");
+            });
+
+            // Iniciar el bucle del juego
+            gameLoop();
+        }
+
+
+        // --- Función de Escalado ---
+        function scaleGame() {
+            let newWidth = window.innerWidth * 0.90; // Usar hasta el 90% del ancho de la ventana
+            let newHeight = window.innerHeight * 0.85; // Usar hasta el 85% de la altura de la ventana
+
+            // Mantener la relación de aspecto
+            if (newWidth / newHeight > aspectRatio) {
+                newWidth = newHeight * aspectRatio;
+            } else {
+                newHeight = newWidth / aspectRatio;
+            }
+
+            // Asegurar que el canvas no sea demasiado pequeño
+            const minCanvasWidth = 300; // Ancho mínimo
+            const minCanvasHeight = minCanvasWidth / aspectRatio; // Altura mínima correspondiente
+            if (newWidth < minCanvasWidth) {
+                newWidth = minCanvasWidth;
+                newHeight = minCanvasHeight;
+            }
+
+
+            canvas.width = newWidth;
+            canvas.height = newHeight;
+
+            const scaleFactor = canvas.width / originalCanvasWidth;
+
+            // Escalar variables del juego
+            tRex.width = tRex.originalWidth * scaleFactor;
+            tRex.height = tRex.originalHeight * scaleFactor;
+            tRex.x = 50 * scaleFactor;
+            tRex.y = canvas.height - tRex.height; // Mantener en el suelo
+
+            // Gravedad y poder de salto ajustados y escalados
+            tRex.gravity = 0.9 * scaleFactor;
+            tRex.jumpPower = -20 * scaleFactor;
+
+            // gameSpeed se actualiza basado en la puntuación, así que no escalar la base aquí
+
+            // Escalar obstáculos existentes
+            obstacles.forEach(obstacle => {
+                obstacle.x *= scaleFactor;
+                obstacle.width = obstacle.originalWidth * scaleFactor;
+                obstacle.height = obstacle.originalHeight * scaleFactor;
+                obstacle.y = canvas.height - obstacle.height; // Ajustar y basado en la nueva altura del canvas
+            });
+
+            // Escalar nubes existentes
+            clouds.forEach(cloud => {
+                cloud.x *= scaleFactor;
+                cloud.y *= scaleFactor;
+                // Escalar ancho de la nube basado en el ancho original
+                cloud.width = cloud.originalWidth * scaleFactor;
+                // Escalar altura de la nube basado en la relación de aspecto original y el nuevo ancho
+                if (cloud.image.naturalWidth > 0) { // Evitar división por cero
+                    cloud.height = cloud.width * (cloud.image.naturalHeight / cloud.image.naturalWidth);
                 } else {
-                    // *** VERIFICAR COLISIÓN CON EL HELICÓPTERO AQUÍ ***
-                    if (verificarColisionHelicoptero(objetivo)) {
-                        console.log('Colisión con helicóptero detectada. Game Over.'); // Log de depuración
-                        clearInterval(intervalo); // Detener el movimiento del objetivo
-                        // objetivo.remove(); // No remover el objetivo inmediatamente para que la colisión sea visible brevemente
-                        gameOver(); // Activar Game Over
-                         return; // Salir del intervalo después de Game Over
-                    }
-                     // La colisión con el láser se verifica en verificarColisionLaser
+                    // Fallback si las dimensiones de la imagen aún no están disponibles
+                    cloud.height = cloud.originalHeight * scaleFactor;
                 }
-            }, 20);
-        }
-
-        // Función para crear una nube
-        function crearNube() {
-            if (!juegoActivo) return;
-            // console.log('Creando nube...'); // Log de depuración
-            // Limitar el número de nubes para no saturar
-            if (gameArea.querySelectorAll('.cloud').length < 5) { // Aumentamos el límite de nubes
-                const nube = document.createElement('img');
-                nube.src = nubesSrc[Math.floor(Math.random() * nubesSrc.length)];
-                nube.classList.add('cloud');
-
-                 // Añadir temporalmente al DOM para obtener dimensiones
-                gameArea.appendChild(nube);
-
-                // Obtener la altura del área de juego y de la nube
-                const gameAreaRect = gameArea.getBoundingClientRect();
-                const altoGameArea = gameAreaRect.height;
-                const altoNube = nube.offsetHeight;
+                // La velocidad de la nube se escala en updateClouds
+            });
 
 
-                // Generar posición vertical aleatoria dentro del área de juego
-                nube.style.top = Math.random() * (altoGameArea - altoNube) + 'px';
-                 // Posicionar inicialmente fuera del área visible a la derecha del contenedor #juego
-                const juegoRect = juego.getBoundingClientRect();
-                nube.style.left = juegoRect.width + 'px'; // Usar el ancho del contenedor #juego
-                moverNube(nube);
+            // Ajustar tamaño de fuente y relleno basado en el factor de escalado para mejor legibilidad en diferentes pantallas
+            scoreDisplay.style.fontSize = `${20 * scaleFactor}px`;
+            gameOverDisplay.style.fontSize = `${30 * scaleFactor}px`;
+            restartButton.style.fontSize = `${18 * scaleFactor}px`;
+            restartButton.style.padding = `${8 * scaleFactor}px ${16 * scaleFactor}px`;
+            jumpButton.style.fontSize = `${24 * scaleFactor}px`;
+            jumpButton.style.padding = `${15 * scaleFactor}px ${30 * scaleFactor}px`;
+
+             // Ajustar tamaño de la imagen del botón de inicio si es visible
+            const startImage = document.getElementById('startButtonImage');
+            if (startImage && startButtonContainer.style.display !== 'none') {
+                 // Puedes ajustar el tamaño de la imagen aquí si es necesario, por ejemplo:
+                 // startImage.style.width = `${scaledDesiredWidth}px`;
+                 // startImage.style.height = 'auto';
             }
         }
 
-        // Función para mover una nube
-        function moverNube(nube) {
-             if (!juegoActivo || !nube.parentElement) { // Verificar si la nube todavía está en el DOM
-                 return;
-            }
-            let nubeX = parseInt(nube.style.left);
-            // Velocidad de la nube más lenta que los objetivos
-            const velocidadNube = 0.5; // Ajusta esta velocidad si quieres que vayan más rápido o lento
-            const intervalo = setInterval(() => {
-                 // Verificar si el juego sigue activo en cada paso del intervalo
-                if (!juegoActivo || !nube.parentElement) { // Verificar si la nube todavía está en el DOM
-                    clearInterval(intervalo);
-                    return;
-                }
 
-                nubeX -= velocidadNube;
-                nube.style.left = nubeX + 'px';
-                 // Verificar si la nube sale del área de juego (izquierda)
-                if (nubeX < -nube.offsetWidth) { // Usar offsetWidth para el ancho real de la nube
-                    clearInterval(intervalo);
-                    nube.remove();
-                }
-            }, 50); // Intervalo de tiempo para el movimiento
-        }
+        // --- Funciones del Juego ---
 
-        // Función para crear un lúpulo
-        function crearLupulo() {
-            // Solo crear si el juego está activo, la puntuación es un múltiplo de 15, y no se ha creado un lúpulo en esta puntuación
-            if (!juegoActivo || puntuacion < 15 || puntuacion % 15 !== 0 || puntuacion === lastLupuloScore) {
-                 return;
-            }
-            // Limitar el número de lúpulos en pantalla (ej: máximo 1)
-            if (gameArea.querySelectorAll('.lupulo').length < 1) {
-                console.log('Creando lúpulo...'); // Log de depuración
-                const lupulo = document.createElement('img');
-                lupulo.src = lupuloSrc;
-                lupulo.classList.add('lupulo');
-
-                // Añadir temporalmente al DOM para obtener dimensiones
-                gameArea.appendChild(lupulo);
-
-                // Obtener la altura del área de juego y del lúpulo
-                const gameAreaRect = gameArea.getBoundingClientRect();
-                const altoGameArea = gameAreaRect.height;
-                const altoLupulo = lupulo.offsetHeight;
-
-                // Generar posición vertical aleatoria dentro del área de juego
-                lupulo.style.top = Math.random() * (altoGameArea - altoLupulo) + 'px';
-                // Posicionar inicialmente fuera del área visible a la derecha del contenedor #juego
-                const juegoRect = juego.getBoundingClientRect();
-                lupulo.style.left = juegoRect.width + 'px'; // Usar el ancho del contenedor #juego
-
-                // Mover el lúpulo
-                moverLupulo(lupulo);
-                lastLupuloScore = puntuacion; // Registrar la puntuación en la que se creó el lúpulo
+        // Función para dibujar el fondo móvil
+        function drawBackground() {
+            // Asegurarse de que la imagen de fondo esté cargada antes de dibujar
+            if (backgroundImage.complete && backgroundImage.naturalHeight !== 0) {
+                // Dibujar la imagen de fondo dos veces para crear un efecto de bucle
+                // Dibuja la primera imagen
+                ctx.drawImage(backgroundImage, backgroundX, 0, canvas.width, canvas.height);
+                // Dibuja la segunda imagen inmediatamente después
+                ctx.drawImage(backgroundImage, backgroundX + canvas.width, 0, canvas.width, canvas.height);
+            } else {
+                // Dibujar un color de fondo sólido si la imagen no está cargada
+                ctx.fillStyle = '#fff'; // Color de respaldo
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
         }
 
-         // Función para mover un lúpulo
-        function moverLupulo(lupulo) {
-             if (!juegoActivo || !lupulo.parentElement) { // Verificar si el lúpulo todavía está en el DOM
-                 return;
+
+        function drawTRex() {
+            // Asegurarse de que la imagen de T-Rex esté cargada antes de dibujar
+            if (tRexImage.complete && tRexImage.naturalHeight !== 0) {
+                ctx.save(); // Guardar el estado actual del canvas
+
+                // Traducir el contexto al centro del T-Rex para la rotación
+                const tRexCenterX = tRex.x + tRex.width / 2;
+                const tRexCenterY = tRex.y + tRex.height / 2;
+                ctx.translate(tRexCenterX, tRexCenterY);
+
+                // Rotar el contexto
+                ctx.rotate(tRex.rotation);
+
+                // Dibujar la imagen del T-Rex centrada alrededor del origen
+                ctx.drawImage(tRexImage, -tRex.width / 2, -tRex.height / 2, tRex.width, tRex.height);
+
+                ctx.restore(); // Restaurar el estado del canvas
+            } else {
+                // Dibujar un rectángulo de respaldo si la imagen no está cargada
+                ctx.fillStyle = '#555';
+                ctx.fillRect(tRex.x, tRex.y, tRex.width, tRex.height);
             }
-            let lupuloX = parseInt(lupulo.style.left);
-            // Velocidad del lúpulo (puede ser diferente a la de los objetivos)
-            const velocidadLupulo = 1.5; // Ajusta la velocidad del lúpulo
-            const intervalo = setInterval(() => {
-                 // Verificar si el juego sigue activo en cada paso del intervalo
-                if (!juegoActivo || !lupulo.parentElement) { // Verificar si el lúpulo todavía está en el DOM
-                    clearInterval(intervalo);
-                    return;
-                }
+        }
 
-                lupuloX -= velocidadLupulo;
-                lupulo.style.left = lupuloX + 'px';
-
-                // Verificar si el lúpulo sale del área de juego (izquierda)
-                if (lupuloX < -lupulo.offsetWidth) { // Usar offsetWidth para el ancho real del lúpulo
-                    clearInterval(intervalo);
-                    lupulo.remove();
+        function drawObstacles() {
+            obstacles.forEach(obstacle => {
+                // Asegurarse de que la imagen del obstáculo esté cargada antes de dibujar
+                if (obstacle.image.complete && obstacle.image.naturalHeight !== 0) {
+                    // Dibujar la imagen del obstáculo
+                    ctx.drawImage(obstacle.image, obstacle.x, obstacle.y, obstacle.width, obstacle.height);
                 } else {
-                    // *** VERIFICAR COLISIÓN CON EL HELICÓPTERO AQUÍ ***
-                    if (verificarColisionHelicoptero(lupulo)) {
-                        console.log('Colisión con lúpulo detectada. Aumentando shotPower y velocidad de objetivos.'); // Log de depuración
-                        clearInterval(intervalo); // Detener el movimiento del lúpulo
-                        lupulo.remove(); // Remover el lúpulo al colisionar
-                        sonidos.bonus.play(); // Reproducir sonido de bonus
-                        shotPower++; // Aumentar el nivel del bonus de disparo
-                        velocidadObjetivos += objetivoSpeedIncrementPorBonus; // Aumentar la velocidad de los objetivos por bonus
-                        console.log(`Nuevo shotPower: ${shotPower}, Nueva velocidadObjetivos: ${velocidadObjetivos}`); // Log de depuración
-                        // No activar Game Over, el juego continúa
-                    }
-                }
-            }, 20); // Intervalo de tiempo para el movimiento
-        }
-
-        // Función para crear un láser
-        function crearLaser(width, angle) { // Recibe ancho y ángulo
-            if (!juegoActivo) return;
-             console.log(`Creando láser con ancho ${width} y ángulo ${angle} grados.`); // Log de depuración
-            const laser = document.createElement('div');
-            laser.classList.add('laser');
-            laser.style.width = width + 'px'; // Establecer el ancho
-            // Posición inicial del láser (justo después del helicóptero)
-            const helicopteroRect = helicoptero.getBoundingClientRect();
-            const gameAreaRect = gameArea.getBoundingClientRect();
-            let startX = (helicopteroRect.left - gameAreaRect.left) + helicoptero.offsetWidth;
-            let startY = (helicopteroRect.top - gameAreaRect.top) + helicoptero.offsetHeight / 2 - 2; // Centrar verticalmente con el helicóptero (ajustar 2px por la altura del láser)
-
-            laser.style.left = startX + 'px';
-            laser.style.top = startY + 'px';
-
-            // Almacenar el ángulo en el dataset del elemento láser
-            laser.dataset.angle = angle;
-
-            gameArea.appendChild(laser); // Añadir al área de juego
-            lasers.push(laser);
-            moverLaser(laser);
-        }
-
-        // Función para mover un láser
-        function moverLaser(laser) {
-             if (!juegoActivo || !laser.parentElement) { // Verificar si el láser todavía está en el DOM
-                 return;
-             }
-             // Obtener la posición y el ángulo actual del láser
-            let laserX = parseFloat(laser.style.left); // Usar parseFloat para valores decimales
-            let laserY = parseFloat(laser.style.top);
-            const angle = parseFloat(laser.dataset.angle); // Obtener el ángulo del dataset
-
-            // Calcular el desplazamiento en X e Y basado en la velocidad y el ángulo
-            const deltaX = laserSpeed * Math.cos(angle * Math.PI / 180); // Convertir grados a radianes
-            const deltaY = laserSpeed * Math.sin(angle * Math.PI / 180);
-
-            const intervalo = setInterval(() => {
-                 // Verificar si el juego sigue activo en cada paso del intervalo
-                if (!juegoActivo || !laser.parentElement) { // Verificar si el juego todavía está en el DOM
-                    clearInterval(intervalo);
-                    return;
-                }
-
-                // Actualizar posición
-                laserX += deltaX;
-                laserY += deltaY;
-                laser.style.left = laserX + 'px';
-                laser.style.top = laserY + 'px';
-
-                 // Verificar si el láser sale del área de juego
-                const gameAreaRect = gameArea.getBoundingClientRect();
-                const laserRect = laser.getBoundingClientRect();
-
-                if (laserRect.left > gameAreaRect.right || // Sale por la derecha
-                    laserRect.right < gameAreaRect.left || // Sale por la izquierda
-                    laserRect.bottom < gameAreaRect.top || // Sale por arriba
-                    laserRect.top > gameAreaRect.bottom) // Sale por abajo
-                    {
-                    clearInterval(intervalo);
-                    laser.remove();
-                    // Encontrar y eliminar el láser del array
-                    const laserIndex = lasers.indexOf(laser);
-                    if (laserIndex > -1) {
-                        lasers.splice(laserIndex, 1);
-                    }
-                } else {
-                    // *** VERIFICAR COLISIÓN CON OBJETIVOS AQUÍ ***
-                    verificarColisionLaser(laser);
-                }
-            }, 20);
-        }
-
-        // Función para verificar colisión entre láser y objetivos
-        function verificarColisionLaser(laser) {
-            // Solo verificar si el láser todavía está en el DOM
-             if (!laser.parentElement) return;
-
-            const laserRect = laser.getBoundingClientRect();
-            // Iterar sobre los objetivos dentro del área de juego
-            gameArea.querySelectorAll('.target').forEach(objetivo => {
-                // Solo verificar si el objetivo todavía está en el DOM
-                if (!objetivo.parentElement) return;
-
-                const objetivoRect = objetivo.getBoundingClientRect();
-                if (verificarColision(laser, objetivo)) {
-                    console.log('Colisión láser-objetivo detectada. Sumando punto.'); // Log de depuración
-                    // Colisión detectada: eliminar láser y objetivo
-                    laser.remove();
-                    objetivo.remove();
-
-                    // Encontrar y eliminar el láser del array
-                    const laserIndex = lasers.indexOf(laser);
-                    if (laserIndex > -1) {
-                        lasers.splice(laserIndex, 1);
-                    }
-
-                    sonidos.explosion.play();
-                    puntuacion++;
-                    objetivosEliminados++;
-                    actualizarPuntuacion(); // Llamar a la función para actualizar puntuación y verificar bonus/dificultad
-
-                    // Crear chispas si shotPower es 3 o más
-                    if (shotPower >= 3) {
-                         crearChispas(laserRect.right, laserRect.top + laserRect.height / 2); // Crear chispas en el punto de colisión
-                    }
-
-
-                    // El incremento de velocidad por objetivos eliminados cada 10 ya está en actualizarPuntuacion
-                    // if (objetivosEliminados % 10 === 0) {
-                    //     velocidadObjetivos += 1;
-                    // }
-
-                    // No es necesario detener el intervalo del objetivo aquí,
-                    // ya que el objetivo fue removido y su intervalo se detendrá
-                    // en la próxima iteración o cuando salga de pantalla.
+                    // Dibujar un rectángulo de respaldo si la imagen no está cargada
+                    ctx.fillStyle = '#333';
+                    ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
                 }
             });
         }
 
-        // Función para crear una bomba (lanza hacia abajo)
-        function crearBomba() {
-             if (!juegoActivo) return;
-             console.log('Creando bomba...'); // Log de depuración
-             const bomba = document.createElement('div');
-             bomba.classList.add('bomba');
-
-             // Posición inicial de la bomba (debajo del helicóptero)
-             const helicopteroRect = helicoptero.getBoundingClientRect();
-             const gameAreaRect = gameArea.getBoundingClientRect();
-             let startX = (helicopteroRect.left - gameAreaRect.left) + helicoptero.offsetWidth / 2 - 7.5; // Centrar horizontalmente (15px ancho / 2)
-             let startY = (helicopteroRect.bottom - gameAreaRect.top); // Justo debajo del helicóptero
-
-             bomba.style.left = startX + 'px';
-             bomba.style.top = startY + 'px';
-
-             gameArea.appendChild(bomba); // Añadir al área de juego
-             bombas.push(bomba);
-             moverBomba(bomba);
-        }
-
-         // Función para mover una bomba
-        function moverBomba(bomba) {
-             if (!juegoActivo || !bomba.parentElement) { // Verificar si la bomba todavía está en el DOM
-                 return;
-            }
-            let bombaY = parseFloat(bomba.style.top);
-            const velocidadBomba = 5; // Velocidad de caída de la bomba
-
-            const intervalo = setInterval(() => {
-                 // Verificar si el juego sigue activo en cada paso del intervalo
-                if (!juegoActivo || !bomba.parentElement) { // Verificar si la bomba todavía está en el DOM
-                    clearInterval(intervalo);
-                    return;
-                }
-
-                bombaY += velocidadBomba;
-                bomba.style.top = bombaY + 'px';
-
-                // Verificar si la bomba sale del área de juego (abajo)
-                const gameAreaRect = gameArea.getBoundingClientRect();
-                const bombaRect = bomba.getBoundingClientRect();
-
-                if (bombaRect.top > gameAreaRect.bottom) { // Sale por abajo
-                    clearInterval(intervalo);
-                    bomba.remove();
-                     // Encontrar y eliminar la bomba del array
-                    const bombaIndex = bombas.indexOf(bomba);
-                    if (bombaIndex > -1) {
-                        bombas.splice(bombaIndex, 1);
-                    }
+        function drawClouds() {
+            clouds.forEach(cloud => {
+                // Asegurarse de que la imagen de la nube esté cargada antes de dibujar
+                if (cloud.image.complete && cloud.image.naturalHeight !== 0) {
+                    // Dibujar la imagen de la nube
+                    ctx.drawImage(cloud.image, cloud.x, cloud.y, cloud.width, cloud.height);
                 } else {
-                    // *** VERIFICAR COLISIÓN CON OBJETIVOS AQUÍ ***
-                    verificarColisionBomba(bomba);
-                }
-            }, 20); // Intervalo de tiempo para el movimiento
-        }
-
-         // Función para verificar colisión entre bomba y objetivos
-        function verificarColisionBomba(bomba) {
-            // Solo verificar si la bomba todavía está en el DOM
-             if (!bomba.parentElement) return;
-
-            const bombaRect = bomba.getBoundingClientRect();
-            // Iterar sobre los objetivos dentro del área de juego
-            gameArea.querySelectorAll('.target').forEach(objetivo => {
-                // Solo verificar si el objetivo todavía está en el DOM
-                if (!objetivo.parentElement) return;
-
-                const objetivoRect = objetivo.getBoundingClientRect();
-                if (verificarColision(bomba, objetivo)) {
-                    console.log('Colisión bomba-objetivo detectada. Eliminando objetivo.'); // Log de depuración
-                    // Colisión detectada: eliminar bomba y objetivo
-                    bomba.remove();
-                    objetivo.remove();
-
-                    // Encontrar y eliminar el bomba del array
-                    const bombaIndex = bombas.indexOf(bomba);
-                    if (bombaIndex > -1) {
-                        bombas.splice(bombaIndex, 1);
-                    }
-
-                    sonidos.explosion.play();
-                    // La bomba no suma puntos, solo elimina obstáculos
+                    // Opcional: Podrías dibujar un círculo o algo simple como respaldo para las nubes
+                    // ctx.fillStyle = '#eee';
+                    // ctx.beginPath();
+                    // ctx.arc(cloud.x + cloud.width / 2, cloud.y + cloud.height / 2, cloud.width / 2, 0, Math.PI * 2);
+                    // ctx.fill();
                 }
             });
         }
 
 
-        // Función para verificar colisión (general, usada para láser vs objetivo, helicóptero vs lúpulo/objetivo, bomba vs objetivo)
-        function verificarColision(elemento1, elemento2) {
-            const rect1 = elemento1.getBoundingClientRect();
-            const rect2 = elemento2.getBoundingClientRect();
-            return !(rect1.right < rect2.left ||
-                rect1.left > rect2.right ||
-                rect1.bottom < rect2.top ||
-                rect1.top > rect2.bottom);
+        function updateTRex() {
+            // Aplicar gravedad
+            tRex.dy += tRex.gravity;
+            tRex.y += tRex.dy;
+
+            // Actualizar rotación si está saltando
+            if (tRex.isJumping) {
+                tRex.rotation += tRex.rotationSpeed;
+                // Opcional: Limitar rotación si es necesario, o dejar que gire
+                // if (tRex.rotation < -Math.PI / 4) { // Detener en -45 grados (antihorario)
+                //     tRex.rotation = -Math.PI / 4;
+                // }
+            }
+
+
+            // Prevenir caer a través del suelo
+            if (tRex.y > canvas.height - tRex.height) {
+                tRex.y = canvas.height - tRex.height;
+                tRex.dy = 0;
+                tRex.isJumping = false;
+                tRex.rotation = 0; // Reiniciar rotación al aterrizar
+            }
         }
 
-        // Función para verificar colisión entre helicóptero y objetivo/lúpulo
-        function verificarColisionHelicoptero(elemento) { // Ahora puede verificar colisión con objetivos o lúpulos
-            // Solo verificar si el elemento todavía está en el DOM
-             if (!elemento.parentElement) return false;
-            return verificarColision(helicoptero, elemento);
+        function updateObstacles() {
+            // Mover obstáculos
+            obstacles.forEach(obstacle => {
+                obstacle.x -= gameSpeed;
+
+                // Comprobar si el obstáculo ha sido pasado y aún no puntuado
+                if (!obstacle.scored && obstacle.x + obstacle.width < tRex.x) {
+                    score += 1;
+                    scoreDisplay.textContent = `Puntuación: ${score}`;
+                    obstacle.scored = true; // Marcar como puntuado
+
+                    // Aumentar la velocidad cada 10 puntos
+                    if (score > 0 && score % 10 === 0) {
+                        gameSpeed += speedIncreasePerScore * (canvas.width / originalCanvasWidth); // Escalar aumento de velocidad
+                    }
+                }
+            });
+
+            // Eliminar obstáculos fuera de pantalla
+            obstacles = obstacles.filter(obstacle => obstacle.x + obstacle.width > 0);
+
+            // Generar nuevos obstáculos
+            // Mayor aleatoriedad en la distancia
+            // Aumentar la distancia mínima y el rango aleatorio
+            const minObstacleDistance = 300 * (canvas.width / originalCanvasWidth); // Ajustado a 300 (escalado)
+            const randomObstacleDistance = Math.random() * 1000 * (canvas.width / originalCanvasWidth); // Ajustado a 1000 (escalado)
+
+            if (obstacles.length === 0 || obstacles[obstacles.length - 1].x < canvas.width - randomObstacleDistance - minObstacleDistance) {
+                // Elegir una imagen de obstáculo aleatoriamente
+                const randomObstacleImage = obstacleImages[Math.floor(Math.random() * obstacleImages.length)];
+
+                // Establecer tamaño inicial a 50x50 píxeles antes de escalar
+                const originalObstacleWidth = 50;
+                const originalObstacleHeight = 50;
+
+                const obstacleWidth = originalObstacleWidth * (canvas.width / originalCanvasWidth);
+                const obstacleHeight = originalObstacleHeight * (canvas.width / originalCanvasWidth);
+
+                const obstacleX = canvas.width;
+                const obstacleY = canvas.height - obstacleHeight; // Posición en el suelo
+
+                obstacles.push({
+                    x: obstacleX,
+                    y: obstacleY,
+                    width: obstacleWidth,
+                    height: obstacleHeight,
+                    originalWidth: originalObstacleWidth, // Almacenar dimensiones originales para escalado
+                    originalHeight: originalObstacleHeight,
+                    image: randomObstacleImage, // Almacenar el objeto de imagen
+                    scored: false // Añadir bandera de puntuado
+                });
+            }
         }
 
-        // Función para manejar el fin del juego
+        function updateClouds() {
+            // Mover nubes
+            clouds.forEach(cloud => {
+                cloud.x -= cloud.speed * (canvas.width / originalCanvasWidth); // Escalar velocidad de la nube
+            });
+
+            // Eliminar nubes fuera de pantalla
+            clouds = clouds.filter(cloud => cloud.x + cloud.width > 0);
+
+            // Generar nuevas nubes
+            const minCloudDistance = 200 * (canvas.width / originalCanvasWidth); // Aumentar distancia mínima base
+            const randomCloudDistance = Math.random() * 400 * (canvas.width / originalCanvasWidth); // Aumentar rango aleatorio base
+
+            if (clouds.length === 0 || clouds[clouds.length - 1].x < canvas.width - randomCloudDistance - minCloudDistance) {
+                // Elegir una imagen de nube aleatoriamente
+                const randomCloudImage = cloudImages[Math.floor(Math.random() * cloudImages.length)];
+
+                // Establecer tamaño inicial (puede ser ajustado) y escalar
+                const originalCloudWidth = Math.random() * 40 + 40; // Ancho base aleatorio (aprox 40-80px)
+                // originalCloudHeight se determinará por la relación de aspecto al escalar
+
+                const cloudWidth = originalCloudWidth * (canvas.width / originalCanvasWidth);
+                let cloudHeight = originalCloudWidth * 0.5 * (canvas.width / originalCanvasWidth); // Relación de aspecto por defecto
+
+                // Calcular altura basado en la relación de aspecto de la imagen si está disponible
+                if (randomCloudImage.naturalWidth > 0) {
+                    cloudHeight = cloudWidth * (randomCloudImage.naturalHeight / randomCloudImage.naturalWidth);
+                }
+
+
+                const cloudX = canvas.width;
+                const cloudY = Math.random() * (canvas.height / 3); // Posición vertical aleatoria en el tercio superior
+
+                clouds.push({
+                    x: cloudX,
+                    y: cloudY,
+                    width: cloudWidth,
+                    height: cloudHeight,
+                    originalWidth: originalCloudWidth, // Almacenar dimensiones originales para escalado
+                    originalHeight: originalCloudWidth * 0.5, // Almacenar una altura base para escalado de respaldo
+                    image: randomCloudImage, // Almacenar el objeto de imagen
+                    speed: Math.random() * 0.8 + 0.3 // Velocidad aleatoria de la nube (más lenta)
+                });
+            }
+        }
+
+        // Función para actualizar la posición del fondo
+        function updateBackground() {
+            backgroundX -= backgroundSpeed * (canvas.width / originalCanvasWidth); // Mover el fondo, escalado por la velocidad del juego
+
+            // Si la primera imagen de fondo sale de la pantalla, reiniciar su posición para crear un bucle
+            if (backgroundX < -canvas.width) {
+                backgroundX = 0;
+            }
+        }
+
+
+        function checkCollision() {
+            obstacles.forEach(obstacle => {
+                if (
+                    tRex.x < obstacle.x + obstacle.width &&
+                    tRex.x + tRex.width > obstacle.x &&
+                    tRex.y < obstacle.y + obstacle.height &&
+                    tRex.y + tRex.height > obstacle.y
+                ) {
+                    // Colisión detectada
+                    gameOver();
+                }
+            });
+        }
+
         function gameOver() {
-            if (!juegoActivo) return; // Evitar llamar a gameOver múltiples veces
-            console.log('Game Over activado.'); // Log de depuración
-            juegoActivo = false;
-            sonidos.gameOver.play();
-            juego.style.display = 'none';
-            finJuego.style.display = 'block';
-            puntuacionFinal.textContent = 'Puntuación final: ' + puntuacion;
-            // Limpiar intervalos para detener la creación de objetivos, nubes y lúpulos
-            clearInterval(objetivoInterval);
-            clearInterval(nubeInterval);
-            clearInterval(lupuloInterval);
-            // Limpiar intervalos de movimiento si están activos
-            clearInterval(moveUpInterval);
-            clearInterval(moveDownInterval);
-
-            // Eliminar todos los elementos restantes
-            gameArea.querySelectorAll('.target').forEach(objetivo => objetivo.remove());
-            gameArea.querySelectorAll('.cloud').forEach(nube => nube.remove());
-            gameArea.querySelectorAll('.lupulo').forEach(lupulo => lupulo.remove());
-            gameArea.querySelectorAll('.laser').forEach(laser => laser.remove());
-            gameArea.querySelectorAll('.bomba').forEach(bomba => bomba.remove());
-            gameArea.querySelectorAll('.spark').forEach(spark => spark.remove()); // Eliminar chispas restantes
-             lasers = []; // Vaciar el array de láseres
-             bombas = []; // Vaciar el array de bombas
-
-            // Resetear el bonus de disparo y velocidad de objetivos al finalizar el juego
-            shotPower = 0;
-            velocidadObjetivos = velocidadObjetivosInicial; // Resetear velocidad de objetivos
-            lastScoreIncrease = 0; // Resetear el rastreador de incremento por puntos
-            lastLupuloScore = 0; // Resetear el rastreador de lúpulo
+            gameRunning = false;
+            gameOverDisplay.style.display = 'block';
+            restartButton.style.display = 'block';
+            jumpButton.style.display = 'none'; // Ocultar botón de salto al perder
+            backgroundMusic.pause(); // Pausar música de fondo
+            gameOverSound.play(); // Reproducir sonido de fin de juego
         }
 
+        function restartGame() {
+            gameRunning = true;
+            // Reiniciar velocidad del juego al valor inicial
+            gameSpeed = initialGameSpeed * (canvas.width / originalCanvasWidth);
 
-        // Función para actualizar la puntuación y verificar bonus/incremento de dificultad
-        function actualizarPuntuacion() {
-            puntuacionElem.textContent = 'Puntuación: ' + puntuacion;
-
-            // Incrementar velocidad de objetivos cada 10 puntos
-            // Solo incrementa si la puntuación actual es un nuevo múltiplo de 10
-            if (puntuacion > 0 && puntuacion % 10 === 0 && puntuacion > lastScoreIncrease) {
-                velocidadObjetivos += objetivoSpeedIncrementPorDiezPuntos;
-                lastScoreIncrease = puntuacion;
-                console.log(`Puntuación ${puntuacion}. Velocidad de objetivos aumentada a: ${velocidadObjetivos}`);
+            tRex.y = canvas.height - tRex.height; // Reiniciar posición basado en la altura actual del canvas
+            tRex.dy = 0;
+            tRex.isJumping = false;
+            tRex.rotation = 0; // Reiniciar rotación al reiniciar
+            obstacles = [];
+            clouds = []; // Limpiar nubes al reiniciar
+            score = 0;
+            scoreDisplay.textContent = `Puntuación: ${score}`;
+            gameOverDisplay.style.display = 'none';
+            restartButton.style.display = 'none';
+             // Mostrar botón de salto si aplica (pantallas pequeñas)
+            if (window.innerWidth <= 768) {
+                 jumpButton.style.display = 'block';
             }
 
-            // Intentar crear lúpulo cada 15 puntos
-            if (juegoActivo && puntuacion >= 15 && puntuacion % 15 === 0 && puntuacion > lastLupuloScore) {
-                 crearLupulo();
-            }
+
+            // Reiniciar posición del fondo
+            backgroundX = 0;
+
+            // Detener sonido de fin de juego y reiniciar música de fondo
+            gameOverSound.pause();
+            gameOverSound.currentTime = 0; // Reiniciar tiempo del sonido de fin de juego
+            backgroundMusic.currentTime = 0; // Reiniciar tiempo de la música de fondo
+            backgroundMusic.play();
+
+            // Volver a escalar elementos del juego al reiniciar en caso de redimensionamiento durante el fin del juego
+            scaleGame();
+
+            gameLoop(); // Iniciar el bucle del juego de nuevo
         }
 
-        // Función principal de disparo (definida aquí para asegurar que las funciones de creación estén disponibles)
-         function dispararHelicoptero() {
-            console.log('Intentando disparar...'); // Log de depuración
-            if (!juegoActivo) {
-                console.log('Juego no activo, no se puede disparar.'); // Log de depuración
-                return;
-            }
-             console.log('Juego activo, procediendo a disparar.'); // Log de depuración
-            sonidos.disparo.play();
-            // Animación de retroceso del helicóptero
-            helicoptero.style.transition = 'transform 0.1s ease-in-out';
-            helicoptero.style.transform = 'translateY(-50%) translateX(-10px)'; // Retrocede un poco
-            setTimeout(() => {
-                 helicoptero.style.transform = 'translateY(-50%) translateX(0)'; // Vuelve a la posición normal
-                 helicoptero.style.transition = ''; // Elimina la transición para el movimiento normal
-            }, 100); // Duración del retroceso
+        // --- Bucle del Juego ---
+        function gameLoop() {
+            if (!gameRunning) return;
 
-            // Crear láser(es) basado en shotPower
-            const currentLaserWidth = laserBaseWidth + shotPower * laserWidthIncrement;
-            if (shotPower === 0) {
-                // Disparo simple
-                crearLaser(laserBaseWidth, 0); // Recto
-            } else if (shotPower === 1) {
-                // Dos disparos: recto y diagonal abajo
-                crearLaser(currentLaserWidth, 0); // Recto
-                crearLaser(currentLaserWidth, 15); // Diagonal abajo (ajusta el ángulo si es necesario)
-            } else if (shotPower >= 2) {
-                // Tres disparos: recto, diagonal arriba y diagonal abajo
-                crearLaser(currentLaserWidth, 0); // Recto
-                crearLaser(currentLaserWidth, -15); // Diagonal arriba (ajusta el ángulo si es necesario)
-                crearLaser(currentLaserWidth, 15); // Diagonal abajo (ajusta el ángulo si es necesario)
-            }
+            // Limpiar canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Crear bomba si shotPower es 3 o más
-            if (shotPower >= 3) {
-                crearBomba();
+            // Actualizar elementos del juego
+            updateTRex();
+            updateObstacles();
+            updateClouds(); // Actualizar nubes
+            updateBackground(); // Actualizar posición del fondo
+            checkCollision();
+
+            // Dibujar elementos del juego
+            drawBackground(); // Dibujar fondo primero
+            drawClouds(); // Dibujar nubes después del fondo
+            drawObstacles();
+            drawTRex();
+
+
+            // Solicitar el siguiente fotograma
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- Listeners de Eventos ---
+        // Función para manejar la acción de salto
+        function handleJump() {
+            if (!tRex.isJumping && gameRunning) { // Solo permitir saltar si el juego está corriendo
+                tRex.dy = tRex.jumpPower;
+                tRex.isJumping = true;
+                tRex.rotation = 0; // Iniciar rotación desde 0 al saltar
+                jumpSound.currentTime = 0; // Reiniciar el sonido de salto si se reproduce rápidamente
+                jumpSound.play(); // Reproducir sonido de salto
             }
         }
 
-
-        // --- Lógica para movimiento continuo al mantener presionado ---
-
-        // Función para detener el movimiento hacia arriba
-        function stopMoveUp() {
-            clearInterval(moveUpInterval);
-            moveUpInterval = null;
-             console.log('Deteniendo movimiento hacia arriba.'); // Log de depuración
-        }
-
-        // Función para detener el movimiento hacia abajo
-        function stopMoveDown() {
-            clearInterval(moveDownInterval);
-            moveDownInterval = null;
-             console.log('Deteniendo movimiento hacia abajo.'); // Log de depuración
-        }
-
-        // Eventos para el botón "Arriba"
-        arribaBtn.addEventListener('mousedown', () => {
-            if (!juegoActivo || moveUpInterval !== null) return;
-             console.log('Botón Arriba presionado.'); // Log de depuración
-            moverHelicopteroArriba(); // Mover una vez inmediatamente al presionar
-            moveUpInterval = setInterval(moverHelicopteroArriba, 100); // Mover continuamente cada 100ms
-        });
-        arribaBtn.addEventListener('mouseup', stopMoveUp);
-        arribaBtn.addEventListener('mouseleave', stopMoveUp); // Detener si el mouse sale del botón
-
-        arribaBtn.addEventListener('touchstart', (event) => {
-            event.preventDefault(); // Previene el comportamiento por defecto del touch
-            if (!juegoActivo || moveUpInterval !== null) return;
-             console.log('Botón Arriba tocado.'); // Log de depuración
-            moverHelicopteroArriba(); // Mover una vez inmediatamente al tocar
-            moveUpInterval = setInterval(moverHelicopteroArriba, 100); // Mover continuamente
-        });
-        arribaBtn.addEventListener('touchend', stopMoveUp);
-        arribaBtn.addEventListener('touchcancel', stopMoveUp); // Detener si el touch se cancela
-
-        // Eventos para el botón "Abajo"
-        abajoBtn.addEventListener('mousedown', () => {
-            if (!juegoActivo || moveDownInterval !== null) return;
-             console.log('Botón Abajo presionado.'); // Log de depuración
-            moverHelicopteroAbajo(); // Mover una vez inmediatamente al presionar
-            moveDownInterval = setInterval(moverHelicopteroAbajo, 100); // Mover continuamente cada 100ms
-        });
-        abajoBtn.addEventListener('mouseup', stopMoveDown);
-        abajoBtn.addEventListener('mouseleave', stopMoveDown); // Detener si el mouse sale del botón
-
-        abajoBtn.addEventListener('touchstart', (event) => {
-            event.preventDefault(); // Previene el comportamiento por defecto del touch
-            if (!juegoActivo || moveDownInterval !== null) return;
-             console.log('Botón Abajo tocado.'); // Log de depuración
-            moverHelicopteroAbajo(); // Mover una vez inmediatamente al tocar
-            moveDownInterval = setInterval(moverHelicopteroAbajo, 100); // Mover continuamente
-        });
-        abajoBtn.addEventListener('touchend', stopMoveDown);
-        abajoBtn.addEventListener('touchcancel', stopMoveDown); // Detener si el touch se cancela
-
-        // El botón disparar sigue con el comportamiento de un solo clic/toque
-        dispararBtn.addEventListener('click', dispararHelicoptero);
-        dispararBtn.addEventListener('touchstart', (event) => {
-             event.preventDefault(); // Previene el comportamiento por defecto del touch
-             console.log('Botón Disparar tocado.'); // Log de depuración
-             dispararHelicoptero();
-        });
-
-
-        // Movimiento con teclado (mantener presionado ya funciona por defecto del SO)
+        // Control de teclado para escritorio
         document.addEventListener('keydown', (event) => {
-            if (!juegoActivo) return;
-            const gameAreaRect = gameArea.getBoundingClientRect();
-            const altoGameArea = gameAreaRect.height;
-            const altoHelicoptero = helicoptero.offsetHeight;
-
-            switch (event.key) {
-                case 'ArrowUp':
-                    console.log('Tecla Arriba presionada.'); // Log de depuración
-                    // La lógica de movimiento continuo con teclado es manejada por el sistema operativo
-                    // al mantener la tecla presionada, no necesitamos setInterval aquí.
-                    moverHelicopteroArriba();
-                    break;
-                case ' ': // Barra espaciadora
-                    console.log('Barra espaciadora presionada.'); // Log de depuración
-                    // Prevenir el scroll de la página al usar la barra espaciadora
-                    event.preventDefault();
-                    dispararHelicoptero();
-                    break;
-                case 'ArrowDown':
-                    console.log('Tecla Abajo presionada.'); // Log de depuración
-                    // La lógica de movimiento continuo con teclado es manejada por el sistema operativo
-                    moverHelicopteroAbajo();
-                    break;
+            if (event.code === 'Space') {
+                handleJump();
             }
         });
 
-         // Prevenir el scroll de la página al usar las teclas de flecha
-        document.addEventListener('keydown', (event) => {
-            if (['ArrowUp', 'ArrowDown', ' '].includes(event.key) && juegoActivo) {
-                event.preventDefault();
-            }
+        // Control táctil en el canvas para móvil (mantener esto para tocar en el área del juego)
+        canvas.addEventListener('touchstart', (event) => {
+            // Prevenir comportamiento táctil por defecto (como zoom)
+            event.preventDefault();
+            handleJump();
+        });
+
+        // Control de clic/táctil en el botón de salto
+        jumpButton.addEventListener('click', handleJump);
+        jumpButton.addEventListener('touchstart', (event) => {
+            event.preventDefault(); // Prevenir doble salto en algunos navegadores móviles
+            handleJump();
+        });
+
+        // Listener para el contenedor del botón de inicio (ahora es la imagen)
+        startButtonContainer.addEventListener('click', startGame);
+        startButtonContainer.addEventListener('touchstart', (event) => {
+             event.preventDefault(); // Prevenir doble activación en móviles
+             startGame();
         });
 
 
-        // Ajustar la posición del helicóptero y otros elementos al redimensionar la ventana
-        window.addEventListener('resize', () => {
-            if (juegoActivo) {
-                console.log('Ventana redimensionada.'); // Log de depuración
-                const gameAreaRect = gameArea.getBoundingClientRect();
-                const altoGameArea = gameAreaRect.height;
-                const altoHelicoptero = helicoptero.offsetHeight;
-
-                // Asegurar que el helicóptero se mantenga dentro de los límites
-                if (helicopteroY > altoGameArea - altoHelicoptero) {
-                    helicopteroY = altoGameArea - altoHelicoptero;
-                }
-                 if (helicopteroY < 0) {
-                    helicopteroY = 0;
-                }
-                helicoptero.style.top = helicopteroY + 'px';
-
-                // Nota: La posición de los objetivos, nubes, lúpulos, láseres y bombas ya creados
-                // no se reajustará automáticamente al redimensionar.
-                // Si esto es un problema, se necesitaría lógica adicional aquí
-                // para iterar sobre ellos y actualizar sus posiciones relativas.
-                // Sin embargo, dado que se mueven constantemente y se eliminan,
-                // el efecto puede ser aceptable.
-            }
-        });
-
-        // Event listener para el botón Jugar
-        jugarBtn.addEventListener('click', () => {
-            console.log('Botón Jugar clickeado. Iniciando juego...'); // Log de depuración
-            inicio.style.display = 'none';
-            juego.style.display = 'flex'; // Usamos flex para mostrar el contenedor del juego y botones
-            puntuacion = 0;
-            objetivosEliminados = 0;
-            velocidadObjetivos = velocidadObjetivosInicial; // Resetear velocidad de objetivos a la inicial
-            shotPower = 0; // Resetear shotPower al inicio del juego
-            lastScoreIncrease = 0; // Resetear el rastreador de incremento por puntos
-            lastLupuloScore = 0; // Resetear el rastreador de lúpulo
-            puntuacionElem.textContent = 'Puntuación: 0';
-            // Eliminar elementos existentes del área de juego
-            gameArea.querySelectorAll('.target').forEach(objetivo => objetivo.remove());
-            gameArea.querySelectorAll('.cloud').forEach(nube => nube.remove());
-            gameArea.querySelectorAll('.lupulo').forEach(lupulo => lupulo.remove());
-            gameArea.querySelectorAll('.laser').forEach(laser => laser.remove());
-            gameArea.querySelectorAll('.bomba').forEach(bomba => bomba.remove()); // Eliminar bombas existentes
-            gameArea.querySelectorAll('.spark').forEach(spark => spark.remove()); // Eliminar chispas restantes
-             lasers = []; // Vaciar el array de láseres
-             bombas = []; // Vaciar el array de bombas
+        // Manejar redimensionamiento de la ventana
+        window.addEventListener('resize', scaleGame);
 
 
-            juegoActivo = true;
-             console.log('juegoActivo = true'); // Log de depuración
+        restartButton.addEventListener('click', restartGame);
 
+        // --- Iniciar la pantalla de inicio cuando las imágenes carguen ---
+        // La llamada a showStartScreen() está dentro de checkAllImagesLoaded()
+        // que se llama cuando todas las imágenes terminan de cargar.
 
-            // Obtener la altura del área de juego después de que se muestre
-            const gameAreaRect = gameArea.getBoundingClientRect();
-            const altoGameArea = gameAreaRect.height;
-
-            // Posicionar el helicóptero en el centro vertical del área de juego
-            helicopteroY = altoGameArea / 2 - helicoptero.offsetHeight / 2;
-            helicoptero.style.top = helicopteroY + 'px';
-            helicoptero.style.left = '10%'; // Mantener la posición horizontal relativa
-            console.log(`Posición inicial del helicóptero: ${helicoptero.style.top}, ${helicoptero.style.left}`); // Log de depuración
-
-
-            // Iniciar la creación de objetivos y nubes
-            objetivoInterval = setInterval(crearObjetivo, 2000); // Intervalo inicial de objetivos
-            nubeInterval = setInterval(crearNube, 3000); // Intervalo inicial de nubes
-            // El lúpulo se creará basado en la puntuación, no en un intervalo fijo
-            // lupuloInterval = setInterval(crearLupulo, 15000); // Eliminado el intervalo fijo
-            console.log('Intervalos de creación de objetivos y nubes iniciados.'); // Log de depuración
-        });
-
-        // Event listener para el botón Reiniciar
-        reiniciarBtn.addEventListener('click', () => {
-             console.log('Botón Reiniciar clickeado. Reiniciando juego...'); // Log de depuración
-            finJuego.style.display = 'none';
-            juego.style.display = 'flex'; // Usamos flex para mostrar el contenedor del juego y botones
-            puntuacion = 0;
-            objetivosEliminados = 0;
-            velocidadObjetivos = velocidadObjetivosInicial; // Resetear velocidad de objetivos a la inicial
-            shotPower = 0; // Resetear shotPower al reiniciar el juego
-             lastScoreIncrease = 0; // Resetear el rastreador de incremento por puntos
-            lastLupuloScore = 0; // Resetear el rastreador de lúpulo
-            puntuacionElem.textContent = 'Puntuación: 0';
-             // Eliminar elementos existentes del área de juego
-            gameArea.querySelectorAll('.target').forEach(objetivo => objetivo.remove());
-            gameArea.querySelectorAll('.cloud').forEach(nube => nube.remove());
-            gameArea.querySelectorAll('.lupulo').forEach(lupulo => lupulo.remove());
-            gameArea.querySelectorAll('.laser').forEach(laser => laser.remove());
-            gameArea.querySelectorAll('.bomba').forEach(bomba => bomba.remove()); // Eliminar bombas restantes
-            gameArea.querySelectorAll('.spark').forEach(spark => spark.remove()); // Eliminar chispas restantes
-             lasers = []; // Vaciar el array de láseres
-             bombas = []; // Vaciar el array de bombas
-
-
-            juegoActivo = true;
-             console.log('juegoActivo = true'); // Log de depuración
-
-
-             // Obtener la altura del área de juego después de que se muestre
-            const gameAreaRect = gameArea.getBoundingClientRect();
-            const altoGameArea = gameAreaRect.height;
-
-            // Posicionar el helicóptero en el centro vertical del área de juego
-            helicopteroY = altoGameArea / 2 - helicoptero.offsetHeight / 2;
-            helicoptero.style.top = helicopteroY + 'px';
-            helicoptero.style.left = '10%'; // Mantener la posición horizontal relativa
-             console.log(`Posición inicial del helicóptero: ${helicoptero.style.top}, ${helicoptero.style.left}`); // Log de depuración
-
-
-            // Reiniciar la creación de objetivos y nubes
-            objetivoInterval = setInterval(crearObjetivo, 2000); // Intervalo inicial de objetivos
-            nubeInterval = setInterval(crearNube, 3000); // Intervalo inicial de nubes
-            // El lúpulo se creará basado en la puntuación, no en un intervalo fijo
-            // lupuloInterval = setInterval(crearLupulo, 15000); // Eliminado el intervalo fijo
-             console.log('Intervalos de creación de objetivos y nubes reiniciados.'); // Log de depuración
-        });
     </script>
 </body>
 </html>
