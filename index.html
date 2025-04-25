@@ -149,6 +149,26 @@
             z-index: 5; /* Asegura que los objetivos estén por encima del fondo y nubes */
         }
 
+         .target.large {
+            /* Estilo para objetivos más grandes */
+            width: 10vw; /* Aumenta el ancho */
+            max-width: 70px; /* Aumenta el tamaño máximo */
+            min-width: 50px; /* Aumenta el tamaño mínimo */
+         }
+
+         .target.small {
+             /* Estilo para objetivos más pequeños */
+             width: 5vw; /* Disminuye el ancho */
+             max-width: 35px; /* Disminuye el tamaño máximo */
+             min-width: 20px; /* Disminuye el tamaño mínimo */
+         }
+
+         .target.red {
+             /* Estilo para objetivos rojos */
+             filter: hue-rotate(90deg) saturate(3); /* Aplica un filtro para cambiar el color a rojo */
+         }
+
+
         .cloud {
             position: absolute;
              /* Usamos unidades relativas o una combinación */
@@ -227,6 +247,25 @@
             background-color: green;
             z-index: 6; /* Asegura que los láseres estén por encima del helicóptero y objetivos */
         }
+
+         .spark {
+             position: absolute;
+             width: 5px;
+             height: 5px;
+             background-color: yellow; /* Color de la chispa */
+             border-radius: 50%;
+             z-index: 7; /* Asegura que las chispas estén por encima de los láseres y objetivos */
+             pointer-events: none; /* Permite hacer clic a través de las chispas */
+             opacity: 1;
+             animation: fadeOut 0.3s ease-out forwards; /* Animación de desvanecimiento */
+         }
+
+         @keyframes fadeOut {
+             to {
+                 opacity: 0;
+             }
+         }
+
 
         /* Media query para ajustar estilos en pantallas más pequeñas si es necesario */
         @media (max-width: 600px) {
@@ -385,30 +424,81 @@
 
         // --- Funciones de creación y movimiento de elementos del juego ---
 
+        // Función para crear chispas en una posición
+        function crearChispas(x, y) {
+             if (!juegoActivo) return;
+             for (let i = 0; i < 5; i++) { // Crear 5 chispas
+                 const spark = document.createElement('div');
+                 spark.classList.add('spark');
+                 // Posición inicial de la chispa ligeramente aleatoria alrededor del punto de colisión
+                 spark.style.left = (x + (Math.random() - 0.5) * 10) + 'px';
+                 spark.style.top = (y + (Math.random() - 0.5) * 10) + 'px';
+                 gameArea.appendChild(spark);
+
+                 // Eliminar la chispa después de la animación
+                 spark.addEventListener('animationend', () => {
+                     spark.remove();
+                 });
+             }
+        }
+
+
         // Función para crear un objetivo
         function crearObjetivo() {
             if (!juegoActivo) return;
-            // console.log('Creando objetivo...'); // Log de depuración
-            const objetivo = document.createElement('img');
-            objetivo.src = objetivosSrc[Math.floor(Math.random() * objetivosSrc.length)];
-            objetivo.classList.add('target');
 
-            // Añadir temporalmente al DOM para obtener dimensiones
-            gameArea.appendChild(objetivo);
+            // Determinar cuántos objetivos crear
+            const numObjetivosACrear = shotPower >= 3 ? 5 : 1; // Crear 5 objetivos si shotPower >= 3, de lo contrario 1
 
-            // Obtener la altura del área de juego y del objetivo
-            const gameAreaRect = gameArea.getBoundingClientRect();
-            const altoGameArea = gameAreaRect.height;
-            const altoObjetivo = objetivo.offsetHeight;
+            for (let i = 0; i < numObjetivosACrear; i++) {
+                const objetivo = document.createElement('img');
+                objetivo.src = objetivosSrc[Math.floor(Math.random() * objetivosSrc.length)];
+                objetivo.classList.add('target');
 
-            // Generar posición vertical aleatoria dentro del área de juego
-            objetivo.style.top = Math.random() * (altoGameArea - altoObjetivo) + 'px';
-            // Posicionar inicialmente fuera del área visible a la derecha del contenedor #juego
-            const juegoRect = juego.getBoundingClientRect();
-            objetivo.style.left = juegoRect.width + 'px'; // Usar el ancho del contenedor #juego
+                // Ajustar tamaño y color según shotPower
+                if (shotPower >= 3) {
+                    objetivo.classList.add('small'); // Más pequeños
+                    objetivo.classList.add('red'); // Rojos
+                } else if (shotPower >= 2) {
+                    objetivo.classList.add('large'); // Más grandes
+                }
 
-            // Mover el objetivo
-            moverObjetivo(objetivo);
+
+                // Añadir temporalmente al DOM para obtener dimensiones
+                gameArea.appendChild(objetivo);
+
+                // Obtener la altura del área de juego y del objetivo
+                const gameAreaRect = gameArea.getBoundingClientRect();
+                const altoGameArea = gameAreaRect.height;
+                const anchoGameArea = gameAreaRect.width;
+                const altoObjetivo = objetivo.offsetHeight;
+                const anchoObjetivo = objetivo.offsetWidth;
+
+
+                // Posición inicial aleatoria normal (en toda la altura)
+                // Generar posición vertical aleatoria dentro del área de juego
+                let startY = Math.random() * (altoGameArea - altoObjetivo); // Aleatorio en toda la altura
+                // Posicionar inicialmente fuera del área visible a la derecha del contenedor #juego
+                const juegoRect = juego.getBoundingClientRect();
+                let startX = juegoRect.width; // Usar el ancho del contenedor #juego
+
+                // Si creamos múltiples objetivos, ajustamos un poco su posición horizontal para que no aparezcan exactamente en el mismo lugar
+                if (numObjetivosACrear > 1) {
+                     startX += i * 50; // Ajusta este valor para cambiar la separación inicial
+                }
+
+
+                objetivo.style.top = startY + 'px';
+                objetivo.style.left = startX + 'px';
+
+                // Almacenar la posición inicial (necesaria para el movimiento hacia Lola)
+                 objetivo.dataset.originalX = parseFloat(objetivo.style.left); // Guardar como número
+                 objetivo.dataset.originalY = parseFloat(objetivo.style.top); // Guardar como número
+
+
+                // Mover el objetivo
+                moverObjetivo(objetivo);
+            }
         }
 
         // Función para mover un objetivo
@@ -416,7 +506,9 @@
             if (!juegoActivo || !objetivo.parentElement) { // Verificar si el objetivo todavía está en el DOM
                  return;
             }
-            let objetivoX = parseInt(objetivo.style.left);
+            let objetivoX = parseFloat(objetivo.style.left); // Usar parseFloat para valores decimales
+            let objetivoY = parseFloat(objetivo.style.top);
+
             const intervalo = setInterval(() => {
                 // Verificar si el juego sigue activo en cada paso del intervalo
                 if (!juegoActivo || !objetivo.parentElement) { // Verificar si el objetivo todavía está en el DOM
@@ -424,8 +516,36 @@
                     return;
                 }
 
+                // Movimiento base de derecha a izquierda
                 objetivoX -= velocidadObjetivos;
+
+                // Movimiento adicional hacia Lola si shotPower es 2 o más
+                if (shotPower >= 2) {
+                    const helicopteroRect = helicoptero.getBoundingClientRect();
+                    const gameAreaRect = gameArea.getBoundingClientRect();
+
+                    // Posición de Lola relativa al área de juego
+                    const lolaX = (helicopteroRect.left - gameAreaRect.left) + helicoptero.offsetWidth / 2;
+                    const lolaY = (helicopteroRect.top - gameAreaRect.top) + helicoptero.offsetHeight / 2;
+
+                    // Vector de dirección del objetivo a Lola
+                    const deltaX = lolaX - objetivoX;
+                    const deltaY = lolaY - objetivoY;
+
+                    // Calcular la distancia
+                    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+                    // Mover hacia Lola (ajusta la velocidad de acercamiento si es necesario)
+                    const velocidadAcercamiento = 0.5; // Velocidad con la que se acercan a Lola
+                    if (distance > 1) { // Evitar división por cero si están exactamente en el mismo lugar
+                        objetivoX += (deltaX / distance) * velocidadAcercamiento;
+                        objetivoY += (deltaY / distance) * velocidadAcercamiento;
+                    }
+                }
+
+
                 objetivo.style.left = objetivoX + 'px';
+                objetivo.style.top = objetivoY + 'px';
 
                 // Verificar si el objetivo sale del área de juego (izquierda)
                 if (objetivoX < -objetivo.offsetWidth) { // Usar offsetWidth para el ancho real del objetivo
@@ -440,7 +560,7 @@
                         gameOver(); // Activar Game Over
                          return; // Salir del intervalo después de Game Over
                     }
-                     // La colisión con el láser se verifica en moverLaser
+                     // La colisión con el láser se verifica en verificarColisionLaser
                 }
             }, 20);
         }
@@ -671,6 +791,13 @@
                     puntuacion++;
                     objetivosEliminados++;
                     actualizarPuntuacion(); // Llamar a la función para actualizar puntuación y verificar bonus/dificultad
+
+                    // Crear chispas si shotPower es 3 o más
+                    if (shotPower >= 3) {
+                         crearChispas(laserRect.right, laserRect.top + laserRect.height / 2); // Crear chispas en el punto de colisión
+                    }
+
+
                     // El incremento de velocidad por objetivos eliminados cada 10 ya está en actualizarPuntuacion
                     // if (objetivosEliminados % 10 === 0) {
                     //     velocidadObjetivos += 1;
@@ -812,6 +939,7 @@
             gameArea.querySelectorAll('.lupulo').forEach(lupulo => lupulo.remove());
             gameArea.querySelectorAll('.laser').forEach(laser => laser.remove());
             gameArea.querySelectorAll('.bomba').forEach(bomba => bomba.remove());
+            gameArea.querySelectorAll('.spark').forEach(spark => spark.remove()); // Eliminar chispas restantes
              lasers = []; // Vaciar el array de láseres
              bombas = []; // Vaciar el array de bombas
 
@@ -828,7 +956,8 @@
             puntuacionElem.textContent = 'Puntuación: ' + puntuacion;
 
             // Incrementar velocidad de objetivos cada 10 puntos
-            if (puntuacion > lastScoreIncrease && puntuacion % 10 === 0) {
+            // Solo incrementa si la puntuación actual es un nuevo múltiplo de 10
+            if (puntuacion > 0 && puntuacion % 10 === 0 && puntuacion > lastScoreIncrease) {
                 velocidadObjetivos += objetivoSpeedIncrementPorDiezPuntos;
                 lastScoreIncrease = puntuacion;
                 console.log(`Puntuación ${puntuacion}. Velocidad de objetivos aumentada a: ${velocidadObjetivos}`);
@@ -1025,6 +1154,7 @@
             gameArea.querySelectorAll('.lupulo').forEach(lupulo => lupulo.remove());
             gameArea.querySelectorAll('.laser').forEach(laser => laser.remove());
             gameArea.querySelectorAll('.bomba').forEach(bomba => bomba.remove()); // Eliminar bombas existentes
+            gameArea.querySelectorAll('.spark').forEach(spark => spark.remove()); // Eliminar chispas restantes
              lasers = []; // Vaciar el array de láseres
              bombas = []; // Vaciar el array de bombas
 
@@ -1070,6 +1200,7 @@
             gameArea.querySelectorAll('.lupulo').forEach(lupulo => lupulo.remove());
             gameArea.querySelectorAll('.laser').forEach(laser => laser.remove());
             gameArea.querySelectorAll('.bomba').forEach(bomba => bomba.remove()); // Eliminar bombas restantes
+            gameArea.querySelectorAll('.spark').forEach(spark => spark.remove()); // Eliminar chispas restantes
              lasers = []; // Vaciar el array de láseres
              bombas = []; // Vaciar el array de bombas
 
@@ -1092,27 +1223,10 @@
             // Reiniciar la creación de objetivos y nubes
             objetivoInterval = setInterval(crearObjetivo, 2000); // Intervalo inicial de objetivos
             nubeInterval = setInterval(crearNube, 3000); // Intervalo inicial de nubes
-             // El lúpulo se creará basado en la puntuación, no en un intervalo fijo
+            // El lúpulo se creará basado en la puntuación, no en un intervalo fijo
             // lupuloInterval = setInterval(crearLupulo, 15000); // Eliminado el intervalo fijo
              console.log('Intervalos de creación de objetivos y nubes reiniciados.'); // Log de depuración
         });
-
-        // Función para actualizar la puntuación y verificar bonus/incremento de dificultad
-        function actualizarPuntuacion() {
-            puntuacionElem.textContent = 'Puntuación: ' + puntuacion;
-
-            // Incrementar velocidad de objetivos cada 10 puntos
-            if (puntuacion > lastScoreIncrease && puntuacion % 10 === 0) {
-                velocidadObjetivos += objetivoSpeedIncrementPorDiezPuntos;
-                lastScoreIncrease = puntuacion;
-                console.log(`Puntuación ${puntuacion}. Velocidad de objetivos aumentada a: ${velocidadObjetivos}`);
-            }
-
-            // Intentar crear lúpulo cada 15 puntos
-            if (juegoActivo && puntuacion >= 15 && puntuacion % 15 === 0 && puntuacion > lastLupuloScore) {
-                 crearLupulo();
-            }
-        }
     </script>
 </body>
 </html>
