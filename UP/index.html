@@ -1,29 +1,648 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <title>LOLA shot</title>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" type="text/css" href="style.css">
+    <title>Juego T Lola</title>
+    <style>
+        body {
+            background: linear-gradient(to top, LightGray, SteelBlue); /* Gradiente de fondo del cuerpo */
+            display: flex;
+            flex-direction: column; /* Organizar elementos verticalmente */
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            /* background-color: #f7f7f7; Eliminado ya que se usa gradiente */
+            margin: 0;
+            font-family: sans-serif;
+            /* Prevenir zoom en móviles */
+            touch-action: manipulation;
+            padding: 10px; /* Añadir algo de relleno alrededor del juego */
+            box-sizing: border-box; /* Incluir relleno en el ancho y alto total del elemento */
+            overflow: hidden; /* Prevenir barras de desplazamiento */
+        }
+
+        canvas {
+            border: 2px solid #333;
+            /* background: linear-gradient(to top, LightGray, LightSkyBlue); Eliminado para usar imagen de fondo */
+            background-color: #fff; /* Color de respaldo si la imagen no carga */
+            display: block;
+            margin: 10px auto; /* Centrar el canvas y añadir margen */
+            max-width: 90%; /* Limitar el ancho máximo relativo al viewport */
+            max-height: 85vh; /* Aumentar la altura máxima relativa a la altura del viewport */
+            width: auto; /* Permitir que el ancho se ajuste */
+            height: auto; /* Permitir que la altura se ajuste */
+        }
+
+        #score {
+            position: absolute;
+            top: 20px;
+            /* Centrar horizontalmente */
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 20px;
+            font-weight: bold;
+            z-index: 10; /* Asegurar que la puntuación esté por encima del canvas */
+        }
+
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 30px;
+            font-weight: bold;
+            color: red;
+            display: none; /* Oculto por defecto */
+            text-align: center;
+            z-index: 10; /* Asegurar que el texto de fin de juego esté por encima del canvas */
+        }
+
+        #restartButton {
+            display: none; /* Oculto por defecto */
+            position: absolute;
+            top: calc(50% + 40px);
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 8px 16px;
+            font-size: 18px;
+            cursor: pointer;
+            z-index: 10; /* Asegurar que el botón esté por encima del canvas */
+        }
+
+        #jumpButton {
+            display: none; /* Oculto por defecto, se mostrará en pantallas más pequeñas */
+            margin-top: 110px; /* Espacio entre el canvas y el botón */
+            padding: 15px 30px;
+            font-size: 24px;
+            cursor: pointer;
+            border: none;
+            border-radius: 15px;
+            background-color: #18943b;
+            color: white;
+            box-shadow: 0px 10px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Media query para mostrar el botón de salto en pantallas más pequeñas */
+        @media (max-width: 768px) {
+            #jumpButton {
+                display: block; /* Mostrar el botón en pantallas pequeñas */
+            }
+        }
+    </style>
 </head>
 <body>
-    <div id="inicio">
-        <h1>LOLA shot</h1>
-        <button id="jugar">Jugar</button>
-    </div>
-    <div id="juego" style="display: none;">
-        <div id="puntuacion">Puntuación: 0</div>
-        <img id="helicoptero" src="https://raw.githubusercontent.com/MauroCasarin/Lola-Game/refs/heads/main/lola.gif" alt="Helicóptero">
-        <div id="botones">
-            <button id="arriba">Arriba</button>
-            <button id="abajo">Abajo</button>
-            <button id="disparar">Disparar</button>
-        </div>
-    </div>
-    <div id="fin-juego" style="display: none;">
-        <h1>¡Fin del juego!</h1>
-        <p id="puntuacion-final"></p>
-        <button id="reiniciar">Reiniciar</button>
-    </div>
-    <script src="script.js"></script>
+
+    <canvas id="gameCanvas"></canvas>
+    <div id="score">Puntuación: 0</div>
+    <div id="gameOver">Fin del Juego</div>
+    <button id="restartButton">Reiniciar</button>
+    <button id="jumpButton">Saltar</button>
+
+    <audio id="jumpSound" src="http://www.marcelomagni.com.ar/sound/salto.mp3"></audio>
+    <audio id="backgroundMusic" src="http://www.marcelomagni.com.ar/sound/LolaGameMusic.mp3" loop></audio>
+    <audio id="gameOverSound" src="http://www.marcelomagni.com.ar/sound/game-over.mp3"></audio>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('score');
+        const gameOverDisplay = document.getElementById('gameOver');
+        const restartButton = document.getElementById('restartButton');
+        const jumpButton = document.getElementById('jumpButton'); // Obtener el botón de salto
+
+        // Obtener elementos de audio
+        const jumpSound = document.getElementById('jumpSound');
+        const backgroundMusic = document.getElementById('backgroundMusic');
+        const gameOverSound = document.getElementById('gameOverSound');
+
+        // --- Dimensiones Originales del Juego (para referencia de escalado) ---
+        // Aumentar la altura original para hacer el canvas más alto
+        const originalCanvasWidth = 600;
+        const originalCanvasHeight = 400; // Canvas hecho más alto (ajustado a 400)
+        const aspectRatio = originalCanvasWidth / originalCanvasHeight;
+
+        // --- Variables del Juego (serán escaladas) ---
+        let tRex = {
+            x: 0, // Se establecerá al redimensionar
+            y: 0, // Se establecerá al redimensionar
+            originalWidth: 70, // Ancho base para escalado
+            originalHeight: 70, // Altura base para escalado
+            width: 0, // Se establecerá al redimensionar
+            height: 0, // Se establecerá al redimensionar
+            dy: 0,
+            gravity: 0, // Se establecerá al redimensionar
+            jumpPower: 0, // Se establecerá al redimensionar
+            isJumping: false,
+            rotation: 0, // Ángulo de rotación actual en radianes
+            rotationSpeed: -Math.PI / 20 // Velocidad de rotación (aprox 90 grados / duración del salto)
+        };
+
+        let obstacles = [];
+        let clouds = []; // Array para almacenar objetos de nubes
+        let gameSpeed = 0; // Se establecerá al redimensionar
+        const initialGameSpeed = 5; // Velocidad inicial
+        const speedIncreasePerScore = 0.5; // Cuánto aumenta la velocidad cada 10 puntos
+        let score = 0;
+        let gameRunning = true;
+
+        // --- Variables de Imagen ---
+        // URLs de las imágenes
+        const tRexImageUrl = 'https://raw.githubusercontent.com/MauroCasarin/Lola-Game/refs/heads/main/lola.svg';
+        const obstacleImageUrls = [
+            'https://raw.githubusercontent.com/MauroCasarin/Lola-Game/refs/heads/main/brahma.svg',
+            'https://raw.githubusercontent.com/MauroCasarin/Lola-Game/refs/heads/main/quilmes.svg',
+            'https://raw.githubusercontent.com/MauroCasarin/Lola-Game/refs/heads/main/stela.svg',
+            'https://raw.githubusercontent.com/MauroCasarin/Lola-Game/refs/heads/main/Bud.svg'
+        ];
+        const cloudImageUrls = [
+            'https://raw.githubusercontent.com/MauroCasarin/Lola-Game/9af808195ce2abfb240dc4f890d329acf0f09e55/cloud.svg',
+            'https://raw.githubusercontent.com/MauroCasarin/Lola-Game/9af808195ce2abfb240dc4f890d329acf0f09e55/cloud2.svg'
+        ];
+
+        // ** AQUÍ PUEDES CAMBIAR LA IMAGEN DE FONDO **
+        const backgroundImageUrl = 'https://raw.githubusercontent.com/MauroCasarin/Lola-Game/refs/heads/main/imagenfondo.jpg'; // URL de tu imagen de fondo
+        const backgroundImage = new Image();
+        backgroundImage.src = backgroundImageUrl;
+
+        // Variables para el fondo móvil
+        let backgroundX = 0; // Posición X del fondo
+        let backgroundSpeed = 1; // Velocidad de desplazamiento del fondo (ajusta según prefieras)
+
+
+        // Objetos de imagen
+        const tRexImage = new Image();
+        tRexImage.src = tRexImageUrl;
+
+        const obstacleImages = obstacleImageUrls.map(url => {
+            const img = new Image();
+            img.src = url;
+            return img;
+        });
+
+         const cloudImages = cloudImageUrls.map(url => {
+            const img = new Image();
+            img.src = url;
+            return img;
+        });
+
+        // Contador de imágenes cargadas
+        let imagesLoaded = 0;
+        // Número total de imágenes a cargar (1 T-Rex + 4 Obstáculos + 2 Nubes + 1 Fondo)
+        const totalImages = 1 + obstacleImageUrls.length + cloudImageUrls.length + 1;
+
+        // Función para verificar si todas las imágenes se han cargado
+        function checkAllImagesLoaded() {
+            imagesLoaded++;
+            if (imagesLoaded === totalImages) {
+                // Todas las imágenes cargadas, iniciar el juego
+                scaleGame();
+                // Establecer velocidad inicial del juego después de escalar
+                gameSpeed = initialGameSpeed * (canvas.width / originalCanvasWidth);
+                 // Reproducir música de fondo al iniciar el juego
+                backgroundMusic.play().catch(e => {
+                    // Manejar posible error si el navegador requiere interacción del usuario para reproducir audio
+                    console.log("La reproducción automática de audio fue bloqueada. Toca la pantalla para iniciar la música.");
+                    // Podrías mostrar un mensaje al usuario aquí
+                });
+                gameLoop(); // Iniciar el bucle del juego
+            }
+        }
+
+        // Asignar el evento onload a cada imagen
+        tRexImage.onload = checkAllImagesLoaded;
+        backgroundImage.onload = checkAllImagesLoaded;
+
+        obstacleImages.forEach(img => {
+            img.onload = checkAllImagesLoaded;
+            img.onerror = () => { // Manejar errores de carga de obstáculos
+                console.error("Error cargando imagen de obstáculo:", img.src);
+                checkAllImagesLoaded(); // Contar como cargada (pero estará rota)
+            };
+        });
+
+        cloudImages.forEach(img => {
+            img.onload = checkAllImagesLoaded;
+             img.onerror = () => { // Manejar errores de carga de nubes
+                console.error("Error cargando imagen de nube:", img.src);
+                checkAllImagesLoaded(); // Contar como cargada (pero estará rota)
+            };
+        });
+
+        // Manejar error de carga de T-Rex y fondo
+        tRexImage.onerror = () => {
+             console.error("Error cargando imagen de T-Rex:", tRexImage.src);
+             checkAllImagesLoaded();
+        };
+         backgroundImage.onerror = () => {
+             console.error("Error cargando imagen de fondo:", backgroundImage.src);
+             checkAllImagesLoaded();
+        };
+
+
+        // --- Función de Escalado ---
+        function scaleGame() {
+            let newWidth = window.innerWidth * 0.90; // Usar hasta el 90% del ancho de la ventana
+            let newHeight = window.innerHeight * 0.85; // Usar hasta el 85% de la altura de la ventana
+
+            // Mantener la relación de aspecto
+            if (newWidth / newHeight > aspectRatio) {
+                newWidth = newHeight * aspectRatio;
+            } else {
+                newHeight = newWidth / aspectRatio;
+            }
+
+            // Asegurar que el canvas no sea demasiado pequeño
+            const minCanvasWidth = 300; // Ancho mínimo
+            const minCanvasHeight = minCanvasWidth / aspectRatio; // Altura mínima correspondiente
+            if (newWidth < minCanvasWidth) {
+                newWidth = minCanvasWidth;
+                newHeight = minCanvasHeight;
+            }
+
+
+            canvas.width = newWidth;
+            canvas.height = newHeight;
+
+            const scaleFactor = canvas.width / originalCanvasWidth;
+
+            // Escalar variables del juego
+            tRex.width = tRex.originalWidth * scaleFactor;
+            tRex.height = tRex.originalHeight * scaleFactor;
+            tRex.x = 50 * scaleFactor;
+            tRex.y = canvas.height - tRex.height; // Mantener en el suelo
+
+            // Gravedad y poder de salto ajustados y escalados
+            tRex.gravity = 0.9 * scaleFactor;
+            tRex.jumpPower = -20 * scaleFactor;
+
+            // gameSpeed se actualiza basado en la puntuación, así que no escalar la base aquí
+
+            // Escalar obstáculos existentes
+            obstacles.forEach(obstacle => {
+                obstacle.x *= scaleFactor;
+                obstacle.width = obstacle.originalWidth * scaleFactor;
+                obstacle.height = obstacle.originalHeight * scaleFactor;
+                obstacle.y = canvas.height - obstacle.height; // Ajustar y basado en la nueva altura del canvas
+            });
+
+             // Escalar nubes existentes
+            clouds.forEach(cloud => {
+                cloud.x *= scaleFactor;
+                cloud.y *= scaleFactor;
+                 // Escalar ancho de la nube basado en el ancho original
+                cloud.width = cloud.originalWidth * scaleFactor;
+                // Escalar altura de la nube basado en la relación de aspecto original y el nuevo ancho
+                if (cloud.image.naturalWidth > 0) { // Evitar división por cero
+                     cloud.height = cloud.width * (cloud.image.naturalHeight / cloud.image.naturalWidth);
+                } else {
+                    // Fallback si las dimensiones de la imagen aún no están disponibles
+                     cloud.height = cloud.originalHeight * scaleFactor;
+                }
+                // La velocidad de la nube se escala en updateClouds
+            });
+
+
+             // Ajustar tamaño de fuente y relleno basado en el factor de escalado para mejor legibilidad en diferentes pantallas
+            scoreDisplay.style.fontSize = `${20 * scaleFactor}px`;
+            gameOverDisplay.style.fontSize = `${30 * scaleFactor}px`;
+            restartButton.style.fontSize = `${18 * scaleFactor}px`;
+            restartButton.style.padding = `${8 * scaleFactor}px ${16 * scaleFactor}px`;
+             jumpButton.style.fontSize = `${24 * scaleFactor}px`;
+             jumpButton.style.padding = `${15 * scaleFactor}px ${30 * scaleFactor}px`;
+        }
+
+
+        // --- Funciones del Juego ---
+
+        // Función para dibujar el fondo móvil
+        function drawBackground() {
+             // Asegurarse de que la imagen de fondo esté cargada antes de dibujar
+             if (backgroundImage.complete && backgroundImage.naturalHeight !== 0) {
+                 // Dibujar la imagen de fondo dos veces para crear un efecto de bucle
+                 // Dibuja la primera imagen
+                ctx.drawImage(backgroundImage, backgroundX, 0, canvas.width, canvas.height);
+                // Dibuja la segunda imagen inmediatamente después
+                ctx.drawImage(backgroundImage, backgroundX + canvas.width, 0, canvas.width, canvas.height);
+             } else {
+                 // Dibujar un color de fondo sólido si la imagen no está cargada
+                 ctx.fillStyle = '#fff'; // Color de respaldo
+                 ctx.fillRect(0, 0, canvas.width, canvas.height);
+             }
+        }
+
+
+        function drawTRex() {
+            // Asegurarse de que la imagen de T-Rex esté cargada antes de dibujar
+             if (tRexImage.complete && tRexImage.naturalHeight !== 0) {
+                ctx.save(); // Guardar el estado actual del canvas
+
+                // Traducir el contexto al centro del T-Rex para la rotación
+                const tRexCenterX = tRex.x + tRex.width / 2;
+                const tRexCenterY = tRex.y + tRex.height / 2;
+                ctx.translate(tRexCenterX, tRexCenterY);
+
+                // Rotar el contexto
+                ctx.rotate(tRex.rotation);
+
+                // Dibujar la imagen del T-Rex centrada alrededor del origen
+                ctx.drawImage(tRexImage, -tRex.width / 2, -tRex.height / 2, tRex.width, tRex.height);
+
+                ctx.restore(); // Restaurar el estado del canvas
+             } else {
+                 // Dibujar un rectángulo de respaldo si la imagen no está cargada
+                 ctx.fillStyle = '#555';
+                 ctx.fillRect(tRex.x, tRex.y, tRex.width, tRex.height);
+             }
+        }
+
+        function drawObstacles() {
+            obstacles.forEach(obstacle => {
+                 // Asegurarse de que la imagen del obstáculo esté cargada antes de dibujar
+                 if (obstacle.image.complete && obstacle.image.naturalHeight !== 0) {
+                    // Dibujar la imagen del obstáculo
+                    ctx.drawImage(obstacle.image, obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+                 } else {
+                     // Dibujar un rectángulo de respaldo si la imagen no está cargada
+                     ctx.fillStyle = '#333';
+                     ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+                 }
+            });
+        }
+
+         function drawClouds() {
+            clouds.forEach(cloud => {
+                 // Asegurarse de que la imagen de la nube esté cargada antes de dibujar
+                 if (cloud.image.complete && cloud.image.naturalHeight !== 0) {
+                    // Dibujar la imagen de la nube
+                    ctx.drawImage(cloud.image, cloud.x, cloud.y, cloud.width, cloud.height);
+                 } else {
+                     // Opcional: Podrías dibujar un círculo o algo simple como respaldo para las nubes
+                     // ctx.fillStyle = '#eee';
+                     // ctx.beginPath();
+                     // ctx.arc(cloud.x + cloud.width / 2, cloud.y + cloud.height / 2, cloud.width / 2, 0, Math.PI * 2);
+                     // ctx.fill();
+                 }
+            });
+        }
+
+
+        function updateTRex() {
+            // Aplicar gravedad
+            tRex.dy += tRex.gravity;
+            tRex.y += tRex.dy;
+
+            // Actualizar rotación si está saltando
+            if (tRex.isJumping) {
+                tRex.rotation += tRex.rotationSpeed;
+                // Opcional: Limitar rotación si es necesario, o dejar que gire
+                 // if (tRex.rotation < -Math.PI / 4) { // Detener en -45 grados (antihorario)
+                 //     tRex.rotation = -Math.PI / 4;
+                 // }
+            }
+
+
+            // Prevenir caer a través del suelo
+            if (tRex.y > canvas.height - tRex.height) {
+                tRex.y = canvas.height - tRex.height;
+                tRex.dy = 0;
+                tRex.isJumping = false;
+                 tRex.rotation = 0; // Reiniciar rotación al aterrizar
+            }
+        }
+
+        function updateObstacles() {
+            // Mover obstáculos
+            obstacles.forEach(obstacle => {
+                obstacle.x -= gameSpeed;
+
+                // Comprobar si el obstáculo ha sido pasado y aún no puntuado
+                if (!obstacle.scored && obstacle.x + obstacle.width < tRex.x) {
+                    score += 1;
+                    scoreDisplay.textContent = `Puntuación: ${score}`;
+                    obstacle.scored = true; // Marcar como puntuado
+
+                    // Aumentar la velocidad cada 10 puntos
+                    if (score > 0 && score % 10 === 0) {
+                        gameSpeed += speedIncreasePerScore * (canvas.width / originalCanvasWidth); // Escalar aumento de velocidad
+                    }
+                }
+            });
+
+            // Eliminar obstáculos fuera de pantalla
+            obstacles = obstacles.filter(obstacle => obstacle.x + obstacle.width > 0);
+
+            // Generar nuevos obstáculos
+            // Mayor aleatoriedad en la distancia
+            // Aumentar la distancia mínima y el rango aleatorio
+            const minObstacleDistance = 300 * (canvas.width / originalCanvasWidth); // Ajustado a 300 (escalado)
+            const randomObstacleDistance = Math.random() * 1000 * (canvas.width / originalCanvasWidth); // Ajustado a 1000 (escalado)
+
+            if (obstacles.length === 0 || obstacles[obstacles.length - 1].x < canvas.width - randomObstacleDistance - minObstacleDistance) {
+                 // Elegir una imagen de obstáculo aleatoriamente
+                const randomObstacleImage = obstacleImages[Math.floor(Math.random() * obstacleImages.length)];
+
+                // Establecer tamaño inicial a 50x50 píxeles antes de escalar
+                const originalObstacleWidth = 50;
+                const originalObstacleHeight = 50;
+
+                const obstacleWidth = originalObstacleWidth * (canvas.width / originalCanvasWidth);
+                const obstacleHeight = originalObstacleHeight * (canvas.width / originalCanvasWidth);
+
+                const obstacleX = canvas.width;
+                const obstacleY = canvas.height - obstacleHeight; // Posición en el suelo
+
+                obstacles.push({
+                    x: obstacleX,
+                    y: obstacleY,
+                    width: obstacleWidth,
+                    height: obstacleHeight,
+                    originalWidth: originalObstacleWidth, // Almacenar dimensiones originales para escalado
+                    originalHeight: originalObstacleHeight,
+                    image: randomObstacleImage, // Almacenar el objeto de imagen
+                    scored: false // Añadir bandera de puntuado
+                });
+            }
+        }
+
+         function updateClouds() {
+            // Mover nubes
+            clouds.forEach(cloud => {
+                cloud.x -= cloud.speed * (canvas.width / originalCanvasWidth); // Escalar velocidad de la nube
+            });
+
+            // Eliminar nubes fuera de pantalla
+            clouds = clouds.filter(cloud => cloud.x + cloud.width > 0);
+
+            // Generar nuevas nubes
+            const minCloudDistance = 200 * (canvas.width / originalCanvasWidth); // Aumentar distancia mínima base
+            const randomCloudDistance = Math.random() * 400 * (canvas.width / originalCanvasWidth); // Aumentar rango aleatorio base
+
+            if (clouds.length === 0 || clouds[clouds.length - 1].x < canvas.width - randomCloudDistance - minCloudDistance) {
+                // Elegir una imagen de nube aleatoriamente
+                const randomCloudImage = cloudImages[Math.floor(Math.random() * cloudImages.length)];
+
+                // Establecer tamaño inicial (puede ser ajustado) y escalar
+                const originalCloudWidth = Math.random() * 40 + 40; // Ancho base aleatorio (aprox 40-80px)
+                 // originalCloudHeight se determinará por la relación de aspecto al escalar
+
+                const cloudWidth = originalCloudWidth * (canvas.width / originalCanvasWidth);
+                 let cloudHeight = originalCloudWidth * 0.5 * (canvas.width / originalCanvasWidth); // Relación de aspecto por defecto
+
+                 // Calcular altura basado en la relación de aspecto de la imagen si está disponible
+                 if (randomCloudImage.naturalWidth > 0) {
+                     cloudHeight = cloudWidth * (randomCloudImage.naturalHeight / randomCloudImage.naturalWidth);
+                 }
+
+
+                const cloudX = canvas.width;
+                const cloudY = Math.random() * (canvas.height / 3); // Posición vertical aleatoria en el tercio superior
+
+                clouds.push({
+                    x: cloudX,
+                    y: cloudY,
+                    width: cloudWidth,
+                    height: cloudHeight,
+                    originalWidth: originalCloudWidth, // Almacenar dimensiones originales para escalado
+                    originalHeight: originalCloudWidth * 0.5, // Almacenar una altura base para escalado de respaldo
+                    image: randomCloudImage, // Almacenar el objeto de imagen
+                    speed: Math.random() * 0.8 + 0.3 // Velocidad aleatoria de la nube (más lenta)
+                });
+            }
+        }
+
+        // Función para actualizar la posición del fondo
+        function updateBackground() {
+            backgroundX -= backgroundSpeed * (canvas.width / originalCanvasWidth); // Mover el fondo, escalado por la velocidad del juego
+
+            // Si la primera imagen de fondo sale de la pantalla, reiniciar su posición para crear un bucle
+            if (backgroundX < -canvas.width) {
+                backgroundX = 0;
+            }
+        }
+
+
+        function checkCollision() {
+            obstacles.forEach(obstacle => {
+                if (
+                    tRex.x < obstacle.x + obstacle.width &&
+                    tRex.x + tRex.width > obstacle.x &&
+                    tRex.y < obstacle.y + obstacle.height &&
+                    tRex.y + tRex.height > obstacle.y
+                ) {
+                    // Colisión detectada
+                    gameOver();
+                }
+            });
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            gameOverDisplay.style.display = 'block';
+            restartButton.style.display = 'block';
+            backgroundMusic.pause(); // Pausar música de fondo
+            gameOverSound.play(); // Reproducir sonido de fin de juego
+        }
+
+        function restartGame() {
+            gameRunning = true;
+            // Reiniciar velocidad del juego al valor inicial
+            gameSpeed = initialGameSpeed * (canvas.width / originalCanvasWidth);
+
+            tRex.y = canvas.height - tRex.height; // Reiniciar posición basado en la altura actual del canvas
+            tRex.dy = 0;
+            tRex.isJumping = false;
+            tRex.rotation = 0; // Reiniciar rotación al reiniciar
+            obstacles = [];
+            clouds = []; // Limpiar nubes al reiniciar
+            score = 0;
+            scoreDisplay.textContent = `Puntuación: ${score}`;
+            gameOverDisplay.style.display = 'none';
+            restartButton.style.display = 'none';
+
+            // Reiniciar posición del fondo
+            backgroundX = 0;
+
+            // Detener sonido de fin de juego y reiniciar música de fondo
+            gameOverSound.pause();
+            gameOverSound.currentTime = 0; // Reiniciar tiempo del sonido de fin de juego
+            backgroundMusic.currentTime = 0; // Reiniciar tiempo de la música de fondo
+            backgroundMusic.play();
+
+            // Volver a escalar elementos del juego al reiniciar en caso de redimensionamiento durante el fin del juego
+            scaleGame();
+
+            gameLoop(); // Iniciar el bucle del juego de nuevo
+        }
+
+        // --- Bucle del Juego ---
+        function gameLoop() {
+            if (!gameRunning) return;
+
+            // Limpiar canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Actualizar elementos del juego
+            updateTRex();
+            updateObstacles();
+            updateClouds(); // Actualizar nubes
+            updateBackground(); // Actualizar posición del fondo
+            checkCollision();
+
+            // Dibujar elementos del juego
+            drawBackground(); // Dibujar fondo primero
+            drawClouds(); // Dibujar nubes después del fondo
+            drawObstacles();
+            drawTRex();
+
+
+            // Solicitar el siguiente fotograma
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- Listeners de Eventos ---
+        // Función para manejar la acción de salto
+        function handleJump() {
+             if (!tRex.isJumping && gameRunning) {
+                tRex.dy = tRex.jumpPower;
+                tRex.isJumping = true;
+                tRex.rotation = 0; // Iniciar rotación desde 0 al saltar
+                jumpSound.currentTime = 0; // Reiniciar el sonido de salto si se reproduce rápidamente
+                jumpSound.play(); // Reproducir sonido de salto
+            }
+        }
+
+        // Control de teclado para escritorio
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'Space') {
+                handleJump();
+            }
+        });
+
+        // Control táctil en el canvas para móvil (mantener esto para tocar en el área del juego)
+        canvas.addEventListener('touchstart', (event) => {
+            // Prevenir comportamiento táctil por defecto (como zoom)
+            event.preventDefault();
+            handleJump();
+        });
+
+        // Control de clic/táctil en el botón de salto
+        jumpButton.addEventListener('click', handleJump);
+        jumpButton.addEventListener('touchstart', (event) => {
+             event.preventDefault(); // Prevenir doble salto en algunos navegadores móviles
+             handleJump();
+        });
+
+
+        // Manejar redimensionamiento de la ventana
+        window.addEventListener('resize', scaleGame);
+
+
+        restartButton.addEventListener('click', restartGame);
+
+        // --- Iniciar el juego ---
+        // No iniciar el juego aquí, esperar a que todas las imágenes carguen
+
+    </script>
 </body>
 </html>
